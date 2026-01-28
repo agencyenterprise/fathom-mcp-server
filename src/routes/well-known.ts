@@ -17,8 +17,10 @@ router.get("/oauth-authorization-server", (_req, res) => {
     issuer: config.baseUrl,
     authorization_endpoint: `${config.baseUrl}/oauth/authorize`,
     token_endpoint: `${config.baseUrl}/oauth/token`,
+    registration_endpoint: `${config.baseUrl}/oauth/register`,
     response_types_supported: ["code"],
     grant_types_supported: ["authorization_code"],
+    token_endpoint_auth_methods_supported: ["none"],
     code_challenge_methods_supported: ["S256", "plain"],
     scopes_supported: ["fathom:read"],
   });

@@ -4,14 +4,35 @@ import { AppError } from "../../middleware/error";
 import { FathomService } from "../fathom";
 import {
   authorizeQuerySchema,
+  clientRegistrationBodySchema,
   fathomCallbackQuerySchema,
   tokenExchangeBodySchema,
 } from "./schema";
 import { OAuthService } from "./service";
 
 export class OAuthController {
+  static async handleRegister(req: Request, res: Response) {
+    const body = clientRegistrationBodySchema.parse(req.body);
+
+    const { clientId } = await OAuthService.registerClient(
+      body.redirect_uris,
+      body.client_name,
+    );
+
+    res.status(201).json({
+      client_id: clientId,
+      client_id_issued_at: Math.floor(Date.now() / 1000),
+      redirect_uris: body.redirect_uris,
+      client_name: body.client_name,
+      token_endpoint_auth_method: "none",
+      grant_types: ["authorization_code"],
+      response_types: ["code"],
+    });
+  }
+
   static async handleAuthorize(req: Request, res: Response) {
     const {
+      client_id,
       redirect_uri,
       response_type,
       state,
@@ -27,7 +48,21 @@ export class OAuthController {
       );
     }
 
+    const client = await OAuthService.getClient(client_id);
+    if (!client) {
+      throw new AppError(400, "invalid_client", "Unknown client_id");
+    }
+
+    if (!client.redirectUris.includes(redirect_uri)) {
+      throw new AppError(
+        400,
+        "invalid_redirect_uri",
+        "redirect_uri not registered for this client",
+      );
+    }
+
     const internalState = await OAuthService.createOAuthState({
+      clientId: client_id,
       redirectUri: redirect_uri,
       state,
       codeChallenge: code_challenge,
@@ -76,6 +111,7 @@ export class OAuthController {
 
     const authCode = await OAuthService.createAuthorizationCode(
       userId,
+      stateRecord.clientId,
       stateRecord.claudeRedirectUri,
       stateRecord.claudeCodeChallenge,
       stateRecord.claudeCodeChallengeMethod,

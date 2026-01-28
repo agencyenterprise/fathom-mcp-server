@@ -1,9 +1,40 @@
 import { createHash, randomUUID } from "crypto";
 import { and, eq, gt } from "drizzle-orm";
-import { accessTokens, authorizationCodes, db, oauthStates } from "../../db";
+import {
+  accessTokens,
+  authorizationCodes,
+  db,
+  oauthClients,
+  oauthStates,
+} from "../../db";
 import type { CreateOAuthStateParamsType } from "./schema";
 
 export class OAuthService {
+  static async registerClient(
+    redirectUris: string[],
+    clientName?: string,
+  ): Promise<{ clientId: string; clientSecret?: string }> {
+    const clientId = randomUUID();
+
+    await db.insert(oauthClients).values({
+      clientId,
+      clientName,
+      redirectUris,
+    });
+
+    return { clientId };
+  }
+
+  static async getClient(clientId: string) {
+    const result = await db
+      .select()
+      .from(oauthClients)
+      .where(eq(oauthClients.clientId, clientId))
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
   static async createOAuthState(
     params: CreateOAuthStateParamsType,
   ): Promise<string> {
@@ -12,6 +43,7 @@ export class OAuthService {
 
     await db.insert(oauthStates).values({
       state,
+      clientId: params.clientId,
       claudeRedirectUri: params.redirectUri,
       claudeState: params.state,
       claudeCodeChallenge: params.codeChallenge,
@@ -43,6 +75,7 @@ export class OAuthService {
 
   static async createAuthorizationCode(
     userId: string,
+    clientId: string,
     claudeRedirectUri: string,
     claudeCodeChallenge: string | null,
     claudeCodeChallengeMethod: string | null,
@@ -54,6 +87,7 @@ export class OAuthService {
     await db.insert(authorizationCodes).values({
       code,
       userId,
+      clientId,
       claudeRedirectUri,
       claudeCodeChallenge,
       claudeCodeChallengeMethod,

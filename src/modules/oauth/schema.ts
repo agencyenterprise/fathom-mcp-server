@@ -1,7 +1,18 @@
 import { z } from "zod";
 
+export const clientRegistrationBodySchema = z.object({
+  redirect_uris: z.array(z.string()),
+  client_name: z.string().optional(),
+  token_endpoint_auth_method: z.string().optional(),
+  grant_types: z.array(z.string()).optional(),
+  response_types: z.array(z.string()).optional(),
+});
+export type ClientRegistrationBodyType = z.infer<
+  typeof clientRegistrationBodySchema
+>;
+
 export const authorizeQuerySchema = z.object({
-  client_id: z.string().optional(),
+  client_id: z.string(),
   redirect_uri: z.string(),
   response_type: z.string().optional(),
   scope: z.string().optional(),
@@ -22,12 +33,14 @@ export type FathomCallbackQueryType = z.infer<typeof fathomCallbackQuerySchema>;
 export const tokenExchangeBodySchema = z.object({
   grant_type: z.string(),
   code: z.string(),
+  client_id: z.string().optional(),
   redirect_uri: z.string().optional(),
   code_verifier: z.string().optional(),
 });
 export type TokenExchangeBodyType = z.infer<typeof tokenExchangeBodySchema>;
 
 export const createOAuthStateParamsSchema = z.object({
+  clientId: z.string(),
   redirectUri: z.string(),
   state: z.string(),
   codeChallenge: z.string().optional(),

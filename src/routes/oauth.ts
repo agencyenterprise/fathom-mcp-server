@@ -4,6 +4,7 @@ import { OAuthController } from "../modules/oauth";
 
 const router = Router();
 
+router.post("/register", asyncHandler(OAuthController.handleRegister));
 router.get("/authorize", asyncHandler(OAuthController.handleAuthorize));
 router.get(
   "/fathom/callback",
