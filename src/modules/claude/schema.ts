@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-// Tool Input Schemas
 export const listMeetingsInputSchema = z.object({
   limit: z
     .number()
@@ -30,20 +29,10 @@ export const searchMeetingsInputSchema = z.object({
 });
 export type SearchMeetingsInputType = z.infer<typeof searchMeetingsInputSchema>;
 
-export const getTranscriptInputSchema = z.object({
+export const recordingInputSchema = z.object({
   recording_id: z.string().describe("The recording ID from a meeting"),
 });
-export type GetTranscriptInputType = z.infer<typeof getTranscriptInputSchema>;
-
-export const getSummaryInputSchema = z.object({
-  recording_id: z.string().describe("The recording ID from a meeting"),
-});
-export type GetSummaryInputType = z.infer<typeof getSummaryInputSchema>;
-
-export const getActionItemsInputSchema = z.object({
-  recording_id: z.string().describe("The recording ID from a meeting"),
-});
-export type GetActionItemsInputType = z.infer<typeof getActionItemsInputSchema>;
+export type RecordingInputType = z.infer<typeof recordingInputSchema>;
 
 export const listTeamMembersInputSchema = z.object({
   team_id: z.string().describe("The team ID to list members for"),

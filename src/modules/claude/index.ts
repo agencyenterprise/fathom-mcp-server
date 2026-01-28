@@ -1,3 +1,2 @@
-export { ClaudeController } from "./controller";
 export * from "./schema";
-export { ClaudeService } from "./service";
+export { ClaudeTools } from "./tools";

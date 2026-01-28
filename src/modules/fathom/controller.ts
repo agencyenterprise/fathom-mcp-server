@@ -1,152 +1,136 @@
-import type { ListMeetingsParamsType } from "./schema";
+import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import {
+  listMeetingsInputSchema,
+  listTeamMembersInputSchema,
+  recordingInputSchema,
+  searchMeetingsInputSchema,
+} from "../claude/schema";
 import { FathomService } from "./service";
 
 export class FathomController {
   static async listMeetings(
-    claudeUserId: string,
-    params?: ListMeetingsParamsType,
-  ) {
+    userId: string,
+    args: unknown,
+  ): Promise<CallToolResult> {
     try {
-      const accessToken = await FathomService.getValidAccessToken(claudeUserId);
-
-      if (!accessToken) {
-        throw new Error(
-          "No valid access token found. Please reconnect your Fathom account.",
-        );
-      }
-
-      const service = new FathomService(accessToken);
-      const response = await service.listMeetings(params);
-
+      const input = listMeetingsInputSchema.parse(args);
+      const service = await FathomService.createAuthorizedService(userId);
+      const data = await service.listMeetings(input);
       return {
-        success: true as const,
-        data: response,
+        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
       };
     } catch (error) {
       return {
-        success: false as const,
-        error:
-          error instanceof Error ? error.message : "Failed to list meetings",
+        content: [{ type: "text", text: (error as Error).message }],
+        isError: true,
       };
     }
   }
 
-  static async getTranscript(claudeUserId: string, recordingId: string) {
+  static async searchMeetings(
+    userId: string,
+    args: unknown,
+  ): Promise<CallToolResult> {
     try {
-      const accessToken = await FathomService.getValidAccessToken(claudeUserId);
+      const input = searchMeetingsInputSchema.parse(args);
+      const service = await FathomService.createAuthorizedService(userId);
+      const meetings = await service.listMeetings({ limit: input.limit ?? 50 });
 
-      if (!accessToken) {
-        throw new Error(
-          "No valid access token found. Please reconnect your Fathom account.",
-        );
-      }
-
-      const service = new FathomService(accessToken);
-      const response = await service.getTranscript(recordingId);
+      const query = input.query.toLowerCase();
+      const filtered = meetings.items.filter(
+        (m) =>
+          m.title.toLowerCase().includes(query) ||
+          m.meeting_title?.toLowerCase().includes(query),
+      );
 
       return {
-        success: true as const,
-        data: response,
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              { items: filtered.slice(0, input.limit ?? 10) },
+              null,
+              2,
+            ),
+          },
+        ],
       };
     } catch (error) {
       return {
-        success: false as const,
-        error:
-          error instanceof Error ? error.message : "Failed to get transcript",
+        content: [{ type: "text", text: (error as Error).message }],
+        isError: true,
       };
     }
   }
 
-  static async getSummary(claudeUserId: string, recordingId: string) {
+  static async getTranscript(
+    userId: string,
+    args: unknown,
+  ): Promise<CallToolResult> {
     try {
-      const accessToken = await FathomService.getValidAccessToken(claudeUserId);
-
-      if (!accessToken) {
-        throw new Error(
-          "No valid access token found. Please reconnect your Fathom account.",
-        );
-      }
-
-      const service = new FathomService(accessToken);
-      const response = await service.getSummary(recordingId);
-
+      const input = recordingInputSchema.parse(args);
+      const service = await FathomService.createAuthorizedService(userId);
+      const data = await service.getTranscript(input.recording_id);
       return {
-        success: true as const,
-        data: response,
+        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
       };
     } catch (error) {
       return {
-        success: false as const,
-        error: error instanceof Error ? error.message : "Failed to get summary",
+        content: [{ type: "text", text: (error as Error).message }],
+        isError: true,
       };
     }
   }
 
-  static async listTeams(claudeUserId: string) {
+  static async getSummary(
+    userId: string,
+    args: unknown,
+  ): Promise<CallToolResult> {
     try {
-      const accessToken = await FathomService.getValidAccessToken(claudeUserId);
-
-      if (!accessToken) {
-        throw new Error(
-          "No valid access token found. Please reconnect your Fathom account.",
-        );
-      }
-
-      const service = new FathomService(accessToken);
-      const response = await service.listTeams();
-
+      const input = recordingInputSchema.parse(args);
+      const service = await FathomService.createAuthorizedService(userId);
+      const data = await service.getSummary(input.recording_id);
       return {
-        success: true as const,
-        data: response,
+        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
       };
     } catch (error) {
       return {
-        success: false as const,
-        error: error instanceof Error ? error.message : "Failed to list teams",
+        content: [{ type: "text", text: (error as Error).message }],
+        isError: true,
       };
     }
   }
 
-  static async listTeamMembers(claudeUserId: string, teamId: string) {
+  static async listTeams(userId: string): Promise<CallToolResult> {
     try {
-      const accessToken = await FathomService.getValidAccessToken(claudeUserId);
-
-      if (!accessToken) {
-        throw new Error(
-          "No valid access token found. Please reconnect your Fathom account.",
-        );
-      }
-
-      const service = new FathomService(accessToken);
-      const response = await service.listTeamMembers(teamId);
-
+      const service = await FathomService.createAuthorizedService(userId);
+      const data = await service.listTeams();
       return {
-        success: true as const,
-        data: response,
+        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
       };
     } catch (error) {
       return {
-        success: false as const,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to list team members",
+        content: [{ type: "text", text: (error as Error).message }],
+        isError: true,
       };
     }
   }
 
-  static async handleOAuthCallback(code: string, claudeUserId: string) {
+  static async listTeamMembers(
+    userId: string,
+    args: unknown,
+  ): Promise<CallToolResult> {
     try {
-      const tokens = await FathomService.exchangeCodeForTokens(code);
-      await FathomService.storeTokens(claudeUserId, tokens);
-
+      const input = listTeamMembersInputSchema.parse(args);
+      const service = await FathomService.createAuthorizedService(userId);
+      const data = await service.listTeamMembers(input.team_id);
       return {
-        success: true as const,
+        content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
       };
     } catch (error) {
       return {
-        success: false as const,
-        error: error instanceof Error ? error.message : "OAuth callback failed",
+        content: [{ type: "text", text: (error as Error).message }],
+        isError: true,
       };
     }
   }

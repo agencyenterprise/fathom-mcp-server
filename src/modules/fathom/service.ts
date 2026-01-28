@@ -1,15 +1,15 @@
-import { config } from '../../common/config';
-import { db, oauthTokens } from '../../db';
-import { eq } from 'drizzle-orm';
+import { eq } from "drizzle-orm";
+import { config } from "../../common/config";
+import { db, oauthTokens } from "../../db";
 import type {
   FathomTokenResponseType,
   ListMeetingsParamsType,
   ListMeetingsResponseType,
-  TranscriptResponseType,
-  SummaryResponseType,
-  ListTeamsResponseType,
   ListTeamMembersResponseType,
-} from './schema';
+  ListTeamsResponseType,
+  SummaryResponseType,
+  TranscriptResponseType,
+} from "./schema";
 
 export class FathomService {
   private accessToken: string;
@@ -18,13 +18,11 @@ export class FathomService {
     this.accessToken = accessToken;
   }
 
-  private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  private async request<T>(endpoint: string): Promise<T> {
     const response = await fetch(`${config.fathom.apiUrl}${endpoint}`, {
-      ...options,
       headers: {
         Authorization: `Bearer ${this.accessToken}`,
-        'Content-Type': 'application/json',
-        ...options?.headers,
+        "Content-Type": "application/json",
       },
     });
 
@@ -36,63 +34,83 @@ export class FathomService {
     return response.json();
   }
 
-  async listMeetings(params?: ListMeetingsParamsType): Promise<ListMeetingsResponseType> {
+  private buildQueryString(
+    params: Record<string, string | number | boolean | undefined>,
+  ) {
     const searchParams = new URLSearchParams();
-
-    if (params?.limit) searchParams.set('limit', String(params.limit));
-    if (params?.cursor) searchParams.set('cursor', params.cursor);
-    if (params?.created_after) searchParams.set('created_after', params.created_after);
-    if (params?.created_before) searchParams.set('created_before', params.created_before);
-    if (params?.include_transcript) searchParams.set('include_transcript', 'true');
-    if (params?.include_summary) searchParams.set('include_summary', 'true');
-    if (params?.recorded_by) {
-      params.recorded_by.forEach((email) => searchParams.append('recorded_by[]', email));
-    }
-
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        searchParams.set(key, String(value));
+      }
+    });
     const query = searchParams.toString();
-    return this.request<ListMeetingsResponseType>(`/meetings${query ? `?${query}` : ''}`);
+    return query ? `?${query}` : "";
+  }
+
+  async listMeetings(
+    params?: ListMeetingsParamsType,
+  ): Promise<ListMeetingsResponseType> {
+    const query = this.buildQueryString({
+      limit: params?.limit,
+      cursor: params?.cursor,
+      created_after: params?.created_after,
+      created_before: params?.created_before,
+      include_transcript: params?.include_transcript,
+      include_summary: params?.include_summary,
+    });
+    return this.request<ListMeetingsResponseType>(`/meetings${query}`);
   }
 
   async getTranscript(recordingId: string): Promise<TranscriptResponseType> {
-    return this.request<TranscriptResponseType>(`/recordings/${recordingId}/transcript`);
+    return this.request<TranscriptResponseType>(
+      `/recordings/${recordingId}/transcript`,
+    );
   }
 
   async getSummary(recordingId: string): Promise<SummaryResponseType> {
-    return this.request<SummaryResponseType>(`/recordings/${recordingId}/summary`);
+    return this.request<SummaryResponseType>(
+      `/recordings/${recordingId}/summary`,
+    );
   }
 
   async listTeams(): Promise<ListTeamsResponseType> {
-    return this.request<ListTeamsResponseType>('/teams');
+    return this.request<ListTeamsResponseType>("/teams");
   }
 
   async listTeamMembers(teamId: string): Promise<ListTeamMembersResponseType> {
-    return this.request<ListTeamMembersResponseType>(`/teams/${teamId}/members`);
+    return this.request<ListTeamMembersResponseType>(
+      `/teams/${teamId}/members`,
+    );
   }
 
-  // Static OAuth methods
   static getAuthorizationUrl(state: string): string {
     const params = new URLSearchParams({
       client_id: config.fathom.clientId,
       redirect_uri: config.fathom.redirectUrl,
-      response_type: 'code',
-      scope: 'public_api',
+      response_type: "code",
+      scope: "public_api",
       state,
     });
     return `${config.fathom.authUrl}/oauth/authorize?${params}`;
   }
 
-  static async exchangeCodeForTokens(code: string): Promise<FathomTokenResponseType> {
-    const response = await fetch(`${config.fathom.authUrl}/external/v1/oauth2/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code,
-        client_id: config.fathom.clientId,
-        client_secret: config.fathom.clientSecret,
-        redirect_uri: config.fathom.redirectUrl,
-      }),
-    });
+  static async exchangeCodeForTokens(
+    code: string,
+  ): Promise<FathomTokenResponseType> {
+    const response = await fetch(
+      `${config.fathom.authUrl}/external/v1/oauth2/token`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code,
+          client_id: config.fathom.clientId,
+          client_secret: config.fathom.clientSecret,
+          redirect_uri: config.fathom.redirectUrl,
+        }),
+      },
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -102,17 +120,22 @@ export class FathomService {
     return response.json();
   }
 
-  static async refreshTokens(refreshToken: string): Promise<FathomTokenResponseType> {
-    const response = await fetch(`${config.fathom.authUrl}/external/v1/oauth2/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken,
-        client_id: config.fathom.clientId,
-        client_secret: config.fathom.clientSecret,
-      }),
-    });
+  static async refreshTokens(
+    refreshToken: string,
+  ): Promise<FathomTokenResponseType> {
+    const response = await fetch(
+      `${config.fathom.authUrl}/external/v1/oauth2/token`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+          client_id: config.fathom.clientId,
+          client_secret: config.fathom.clientSecret,
+        }),
+      },
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -122,23 +145,22 @@ export class FathomService {
     return response.json();
   }
 
-  // Token storage methods
   static async storeTokens(
-    claudeUserId: string,
-    tokens: FathomTokenResponseType
+    userId: string,
+    tokens: FathomTokenResponseType,
   ): Promise<void> {
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
     await db
       .insert(oauthTokens)
       .values({
-        claudeUserId,
+        userId,
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
         expiresAt,
       })
       .onConflictDoUpdate({
-        target: oauthTokens.claudeUserId,
+        target: oauthTokens.userId,
         set: {
           accessToken: tokens.access_token,
           refreshToken: tokens.refresh_token,
@@ -148,32 +170,36 @@ export class FathomService {
       });
   }
 
-  static async getStoredTokens(claudeUserId: string) {
+  static async getStoredTokens(userId: string) {
     const result = await db
       .select()
       .from(oauthTokens)
-      .where(eq(oauthTokens.claudeUserId, claudeUserId))
+      .where(eq(oauthTokens.userId, userId))
       .limit(1);
 
     return result[0] ?? null;
   }
 
-  static async getValidAccessToken(claudeUserId: string): Promise<string | null> {
-    const stored = await this.getStoredTokens(claudeUserId);
+  static async getValidAccessToken(userId: string): Promise<string> {
+    const stored = await this.getStoredTokens(userId);
 
     if (!stored) {
-      return null;
+      throw new Error(
+        "No valid access token found. Please reconnect your Fathom account.",
+      );
     }
 
-    const isExpired = stored.expiresAt < new Date();
-
-    if (!isExpired) {
+    if (stored.expiresAt > new Date()) {
       return stored.accessToken;
     }
 
     const refreshed = await this.refreshTokens(stored.refreshToken);
-    await this.storeTokens(claudeUserId, refreshed);
-
+    await this.storeTokens(userId, refreshed);
     return refreshed.access_token;
+  }
+
+  static async createAuthorizedService(userId: string): Promise<FathomService> {
+    const accessToken = await this.getValidAccessToken(userId);
+    return new FathomService(accessToken);
   }
 }
