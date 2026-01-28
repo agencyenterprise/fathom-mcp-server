@@ -14,8 +14,7 @@ export type ClientRegistrationBodyType = z.infer<
 export const authorizeQuerySchema = z.object({
   client_id: z.string(),
   redirect_uri: z.string(),
-  response_type: z.string().optional(),
-  scope: z.string().optional(),
+  response_type: z.literal("code"),
   state: z.string(),
   code_challenge: z.string().optional(),
   code_challenge_method: z.string().optional(),
@@ -23,15 +22,13 @@ export const authorizeQuerySchema = z.object({
 export type AuthorizeQueryType = z.infer<typeof authorizeQuerySchema>;
 
 export const fathomCallbackQuerySchema = z.object({
-  code: z.string().optional(),
-  state: z.string().optional(),
-  error: z.string().optional(),
-  error_description: z.string().optional(),
+  code: z.string(),
+  state: z.string(),
 });
 export type FathomCallbackQueryType = z.infer<typeof fathomCallbackQuerySchema>;
 
 export const tokenExchangeBodySchema = z.object({
-  grant_type: z.string(),
+  grant_type: z.literal("authorization_code"),
   code: z.string(),
   client_id: z.string().optional(),
   redirect_uri: z.string().optional(),
