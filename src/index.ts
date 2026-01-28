@@ -1,6 +1,6 @@
+import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import express from "express";
 import { config } from "./common/config";
 import { bearerAuthMiddleware, errorHandler } from "./middleware";
 import { routes } from "./routes";
