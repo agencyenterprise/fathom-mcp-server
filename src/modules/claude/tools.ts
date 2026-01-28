@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { FathomController } from "../fathom";
+import { McpService } from "../mcp/service";
 import {
   listMeetingsInputSchema,
   listTeamMembersInputSchema,
@@ -30,6 +31,7 @@ export class ClaudeTools {
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
+        console.log("list_meetings called with userId:", userId);
         return FathomController.listMeetings(userId, args);
       },
     );
@@ -43,6 +45,7 @@ export class ClaudeTools {
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
+        console.log("search_meetings called with userId:", userId);
         return FathomController.searchMeetings(userId, args);
       },
     );
@@ -56,6 +59,7 @@ export class ClaudeTools {
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
+        console.log("get_transcript called with userId:", userId);
         return FathomController.getTranscript(userId, args);
       },
     );
@@ -69,6 +73,7 @@ export class ClaudeTools {
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
+        console.log("get_summary called with userId:", userId);
         return FathomController.getSummary(userId, args);
       },
     );
@@ -82,6 +87,7 @@ export class ClaudeTools {
       },
       async (_args, extra) => {
         const userId = this.getUserId(extra);
+        console.log("list_teams called with userId:", userId);
         return FathomController.listTeams(userId);
       },
     );
@@ -95,14 +101,26 @@ export class ClaudeTools {
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
+        console.log("list_team_members called with userId:", userId);
         return FathomController.listTeamMembers(userId, args);
       },
     );
   }
 
   private getUserId(extra: unknown): string {
-    const extraObj = extra as { authInfo?: { extra?: { userId?: string } } };
-    return extraObj?.authInfo?.extra?.userId || "unknown";
+    const extraObj = extra as { sessionId?: string };
+    console.log("getUserId extra:", JSON.stringify(extra, null, 2));
+
+    if (extraObj?.sessionId) {
+      const session = McpService.getTransport(extraObj.sessionId);
+      if (session) {
+        console.log("Found userId from session:", session.userId);
+        return session.userId;
+      }
+    }
+
+    console.log("No userId found, returning unknown");
+    return "unknown";
   }
 
   getServer(): McpServer {
