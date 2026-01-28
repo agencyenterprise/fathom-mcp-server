@@ -1,6 +1,12 @@
 import { createHash, randomUUID } from "crypto";
 import { and, eq, gt } from "drizzle-orm";
 import {
+  ACCESS_TOKEN_TTL_MS,
+  AUTH_CODE_TTL_MS,
+  DEFAULT_SCOPE,
+  OAUTH_STATE_TTL_MS,
+} from "../../common/constants";
+import {
   accessTokens,
   authorizationCodes,
   db,
@@ -39,7 +45,7 @@ export class OAuthService {
     params: CreateOAuthStateParamsType,
   ): Promise<string> {
     const state = randomUUID();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + OAUTH_STATE_TTL_MS);
 
     await db.insert(oauthStates).values({
       state,
@@ -79,10 +85,10 @@ export class OAuthService {
     claudeRedirectUri: string,
     claudeCodeChallenge: string | null,
     claudeCodeChallengeMethod: string | null,
-    scope: string = "fathom:read",
+    scope: string = DEFAULT_SCOPE,
   ): Promise<string> {
     const code = randomUUID();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + AUTH_CODE_TTL_MS);
 
     await db.insert(authorizationCodes).values({
       code,
@@ -125,11 +131,13 @@ export class OAuthService {
     scope: string,
   ): Promise<string> {
     const token = randomUUID();
+    const expiresAt = new Date(Date.now() + ACCESS_TOKEN_TTL_MS);
 
     await db.insert(accessTokens).values({
       token,
       userId,
       scope,
+      expiresAt,
     });
 
     return token;
@@ -139,7 +147,12 @@ export class OAuthService {
     const result = await db
       .select()
       .from(accessTokens)
-      .where(eq(accessTokens.token, token))
+      .where(
+        and(
+          eq(accessTokens.token, token),
+          gt(accessTokens.expiresAt, new Date()),
+        ),
+      )
       .limit(1);
 
     return result[0] ?? null;
