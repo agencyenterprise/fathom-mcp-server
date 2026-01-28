@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { config } from "../../common/config";
 import { FathomController } from "../fathom";
 import { McpService } from "../mcp/service";
 import {
@@ -13,7 +14,16 @@ export class ClaudeTools {
 
   constructor() {
     this.server = new McpServer(
-      { name: "fathom-mcp", version: "1.0.0" },
+      {
+        name: "fathom-mcp",
+        version: "1.0.0",
+        icons: [
+          {
+            src: `${config.baseUrl}/logo.png`,
+            mimeType: "image/png",
+          },
+        ],
+      },
       { capabilities: { logging: {}, tools: { listChanged: false } } },
     );
 
