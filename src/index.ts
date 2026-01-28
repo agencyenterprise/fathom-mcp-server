@@ -11,7 +11,7 @@ const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "../public")));
+app.use(express.static(path.join(__dirname, "public")));
 
 app.use((req, _res, next) => {
   console.log(`${req.method}  ${req.path}`);
@@ -23,7 +23,7 @@ app.use("/.well-known", routes.wellKnown);
 app.use("/oauth", routes.oauth);
 app.use("/mcp", bearerAuthMiddleware, routes.mcp);
 
-app.get("/", (_req, res) => {
+app.get("/api", (_req, res) => {
   res.json({
     name: "fathom-mcp",
     version: "1.0.0",
