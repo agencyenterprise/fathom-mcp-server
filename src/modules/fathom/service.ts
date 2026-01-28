@@ -91,7 +91,7 @@ export class FathomService {
       scope: "public_api",
       state,
     });
-    return `${config.fathom.authUrl}/oauth/authorize?${params}`;
+    return `${config.fathom.authUrl}/external/v1/oauth2/authorize?${params}`;
   }
 
   static async exchangeCodeForTokens(
