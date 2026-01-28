@@ -77,10 +77,11 @@ export class FathomService {
     return this.request<ListTeamsResponseType>("/teams");
   }
 
-  async listTeamMembers(teamId: string): Promise<ListTeamMembersResponseType> {
-    return this.request<ListTeamMembersResponseType>(
-      `/teams/${teamId}/members`,
-    );
+  async listTeamMembers(
+    teamName?: string,
+  ): Promise<ListTeamMembersResponseType> {
+    const query = this.buildQueryString({ team: teamName });
+    return this.request<ListTeamMembersResponseType>(`/team_members${query}`);
   }
 
   static getAuthorizationUrl(state: string): string {

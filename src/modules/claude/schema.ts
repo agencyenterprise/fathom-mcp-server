@@ -35,7 +35,10 @@ export const recordingInputSchema = z.object({
 export type RecordingInputType = z.infer<typeof recordingInputSchema>;
 
 export const listTeamMembersInputSchema = z.object({
-  team_id: z.string().describe("The team ID to list members for"),
+  team_name: z
+    .string()
+    .optional()
+    .describe("Optional team name to filter members by"),
 });
 export type ListTeamMembersInputType = z.infer<
   typeof listTeamMembersInputSchema

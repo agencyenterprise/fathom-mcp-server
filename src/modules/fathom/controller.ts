@@ -62,7 +62,7 @@ export class FathomController {
   static listTeamMembers = withToolHandler(
     listTeamMembersInputSchema,
     async function (this: FathomService, input) {
-      return this.listTeamMembers(input.team_id);
+      return this.listTeamMembers(input.team_name);
     },
   );
 
