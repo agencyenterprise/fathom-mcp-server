@@ -14,6 +14,7 @@ export async function bearerAuthMiddleware(
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    console.log("Auth: No bearer token, returning 401 with WWW-Authenticate header");
     res.setHeader(
       "WWW-Authenticate",
       `Bearer resource_metadata="${config.baseUrl}/.well-known/oauth-protected-resource"`,
