@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { OAuthService } from "../modules/oauth";
+import { AppError } from "./error";
 
 export interface AuthenticatedRequest extends Request {
   userId?: string;
@@ -7,39 +8,31 @@ export interface AuthenticatedRequest extends Request {
 
 export async function bearerAuthMiddleware(
   req: AuthenticatedRequest,
-  res: Response,
+  _res: Response,
   next: NextFunction,
 ) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    res.status(401).json({
-      error: "unauthorized",
-      error_description: "Missing or invalid Authorization header",
-    });
-    return;
+    return next(
+      new AppError(
+        401,
+        "unauthorized",
+        "Missing or invalid Authorization header",
+      ),
+    );
   }
 
   const token = authHeader.slice(7);
 
-  try {
-    const tokenRecord = await OAuthService.getAccessToken(token);
+  const tokenRecord = await OAuthService.getAccessToken(token);
 
-    if (!tokenRecord) {
-      res.status(401).json({
-        error: "invalid_token",
-        error_description: "Token not found or expired",
-      });
-      return;
-    }
-
-    req.userId = tokenRecord.userId;
-    next();
-  } catch (error) {
-    console.error("Auth middleware error:", error);
-    res.status(500).json({
-      error: "server_error",
-      error_description: "Failed to validate token",
-    });
+  if (!tokenRecord) {
+    return next(
+      new AppError(401, "invalid_token", "Token not found or expired"),
+    );
   }
+
+  req.userId = tokenRecord.userId;
+  next();
 }

@@ -1,6 +1,6 @@
 import express from "express";
 import { config } from "./common/config";
-import { bearerAuthMiddleware } from "./middleware/auth";
+import { bearerAuthMiddleware, errorHandler } from "./middleware";
 import { routes } from "./routes";
 
 const app = express();
@@ -25,6 +25,8 @@ app.get("/", (_req, res) => {
     },
   });
 });
+
+app.use(errorHandler);
 
 app.listen(config.port, () => {
   console.log(`Fathom MCP server running on port ${config.port}`);
