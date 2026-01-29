@@ -6,7 +6,7 @@ export const logger = pino({
   level: config.nodeEnv === "production" ? "info" : "debug",
   transport: {
     target: "pino-pretty",
-    options: { colorize: true },
+    options: { colorize: true, singleLine: true },
   },
 });
 
@@ -25,7 +25,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
       method: req.method,
       url: req.url,
       statusCode: res.statusCode,
-      duration,
+      duration: `${duration}ms`,
     };
 
     if (Object.keys(req.query).length > 0) {
