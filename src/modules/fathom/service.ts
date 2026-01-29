@@ -1,14 +1,20 @@
 import { eq } from "drizzle-orm";
 import { config } from "../../common/config";
 import { db, oauthTokens } from "../../db";
-import type {
-  FathomTokenResponseType,
-  ListMeetingsParamsType,
-  ListMeetingsResponseType,
-  ListTeamMembersResponseType,
-  ListTeamsResponseType,
-  SummaryResponseType,
-  TranscriptResponseType,
+import {
+  fathomTokenResponseSchema,
+  listMeetingsResponseSchema,
+  listTeamMembersResponseSchema,
+  listTeamsResponseSchema,
+  summaryResponseSchema,
+  transcriptResponseSchema,
+  type FathomTokenResponseType,
+  type ListMeetingsParamsType,
+  type ListMeetingsResponseType,
+  type ListTeamMembersResponseType,
+  type ListTeamsResponseType,
+  type SummaryResponseType,
+  type TranscriptResponseType,
 } from "./schema";
 
 export class FathomService {
@@ -18,7 +24,7 @@ export class FathomService {
     this.accessToken = accessToken;
   }
 
-  private async request<T>(endpoint: string): Promise<T> {
+  private async fetchJson(endpoint: string): Promise<unknown> {
     const response = await fetch(`${config.fathom.apiUrl}${endpoint}`, {
       headers: {
         Authorization: `Bearer ${this.accessToken}`,
@@ -27,22 +33,25 @@ export class FathomService {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Fathom API error ${response.status}: ${errorText}`);
+      const errorBody = await response.text();
+      throw new Error(`Fathom API error ${response.status}: ${errorBody}`);
     }
 
     return response.json();
   }
 
   private buildQueryString(
-    params: Record<string, string | number | boolean | undefined>,
-  ) {
+    params?: Record<string, string | number | boolean | undefined>,
+  ): string {
+    if (!params) return "";
+
     const searchParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(params)) {
       if (value !== undefined) {
         searchParams.set(key, String(value));
       }
-    });
+    }
+
     const query = searchParams.toString();
     return query ? `?${query}` : "";
   }
@@ -58,30 +67,31 @@ export class FathomService {
       include_transcript: params?.include_transcript,
       include_summary: params?.include_summary,
     });
-    return this.request<ListMeetingsResponseType>(`/meetings${query}`);
+    const data = await this.fetchJson(`/meetings${query}`);
+    return listMeetingsResponseSchema.parse(data);
   }
 
   async getTranscript(recordingId: string): Promise<TranscriptResponseType> {
-    return this.request<TranscriptResponseType>(
-      `/recordings/${recordingId}/transcript`,
-    );
+    const data = await this.fetchJson(`/recordings/${recordingId}/transcript`);
+    return transcriptResponseSchema.parse(data);
   }
 
   async getSummary(recordingId: string): Promise<SummaryResponseType> {
-    return this.request<SummaryResponseType>(
-      `/recordings/${recordingId}/summary`,
-    );
+    const data = await this.fetchJson(`/recordings/${recordingId}/summary`);
+    return summaryResponseSchema.parse(data);
   }
 
   async listTeams(): Promise<ListTeamsResponseType> {
-    return this.request<ListTeamsResponseType>("/teams");
+    const data = await this.fetchJson("/teams");
+    return listTeamsResponseSchema.parse(data);
   }
 
   async listTeamMembers(
     teamName?: string,
   ): Promise<ListTeamMembersResponseType> {
     const query = this.buildQueryString({ team: teamName });
-    return this.request<ListTeamMembersResponseType>(`/team_members${query}`);
+    const data = await this.fetchJson(`/team_members${query}`);
+    return listTeamMembersResponseSchema.parse(data);
   }
 
   static getAuthorizationUrl(state: string): string {
@@ -114,11 +124,12 @@ export class FathomService {
     );
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Token exchange failed: ${errorText}`);
+      const errorBody = await response.text();
+      throw new Error(`Token exchange failed: ${errorBody}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    return fathomTokenResponseSchema.parse(data);
   }
 
   static async refreshTokens(
@@ -139,11 +150,12 @@ export class FathomService {
     );
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Token refresh failed: ${errorText}`);
+      const errorBody = await response.text();
+      throw new Error(`Token refresh failed: ${errorBody}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    return fathomTokenResponseSchema.parse(data);
   }
 
   static async storeTokens(
