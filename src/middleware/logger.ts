@@ -1,5 +1,7 @@
-import { NextFunction, Request, Response } from "express";
+import { randomUUID } from "crypto";
+import { IncomingMessage } from "http";
 import pino from "pino";
+import pinoHttp from "pino-http";
 import { config } from "../common/config";
 
 export const logger = pino({
@@ -10,34 +12,27 @@ export const logger = pino({
   },
 });
 
-let requestId = 0;
-
-export function requestLogger(req: Request, res: Response, next: NextFunction) {
-  const id = ++requestId;
-  const start = Date.now();
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    const level = res.statusCode >= 400 ? "error" : "info";
-
-    const logData: Record<string, unknown> = {
-      id,
+export const requestLogger = pinoHttp({
+  logger,
+  genReqId: (req: IncomingMessage) =>
+    (req.headers["x-railway-request-id"] as string) ||
+    (req.headers["x-request-id"] as string) ||
+    randomUUID(),
+  serializers: {
+    req: (req) => ({
       method: req.method,
       url: req.url,
+      ...(req.query &&
+        Object.keys(req.query).length > 0 && { query: req.query }),
+      ...(req.params &&
+        Object.keys(req.params).length > 0 && { params: req.params }),
+    }),
+    res: (res) => ({
       statusCode: res.statusCode,
-      duration: `${duration}ms`,
-    };
-
-    if (Object.keys(req.query).length > 0) {
-      logData.query = req.query;
-    }
-
-    if (Object.keys(req.params).length > 0) {
-      logData.params = req.params;
-    }
-
-    logger[level](logData, "Request");
-  });
-
-  next();
-}
+    }),
+  },
+  customLogLevel: (_req, res, err) => {
+    if (res.statusCode >= 400 || err) return "error";
+    return "info";
+  },
+});
