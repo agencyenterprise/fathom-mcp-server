@@ -1,11 +1,10 @@
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
-import { Response } from "express";
-import type { AuthenticatedRequest } from "../../middleware/auth";
+import { Request, Response } from "express";
 import { AppError } from "../../middleware/error";
 import { McpService } from "./service";
 
 export class McpController {
-  static async handlePost(req: AuthenticatedRequest, res: Response) {
+  static async handlePost(req: Request, res: Response) {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
     if (sessionId) {
@@ -30,7 +29,7 @@ export class McpController {
     throw new AppError(400, "bad_request", "No valid session ID provided");
   }
 
-  static async handleGet(req: AuthenticatedRequest, res: Response) {
+  static async handleGet(req: Request, res: Response) {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
     if (!sessionId) {
@@ -53,7 +52,7 @@ export class McpController {
     await session.transport.handleRequest(req, res);
   }
 
-  static async handleDelete(req: AuthenticatedRequest, res: Response) {
+  static async handleDelete(req: Request, res: Response) {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
     if (!sessionId) {

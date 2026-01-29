@@ -1,19 +1,20 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { FathomController } from "../fathom";
-import { McpService } from "../mcp/service";
+import { config } from "../common/config";
 import {
   listMeetingsInputSchema,
   listTeamMembersInputSchema,
   recordingInputSchema,
   searchMeetingsInputSchema,
-} from "./schema";
+} from "../common/schemas";
+import { McpService } from "../modules/mcp/service";
+import { ToolHandlers } from "./handlers";
 
-export class ClaudeTools {
+export class ToolServer {
   private server: McpServer;
 
   constructor() {
     this.server = new McpServer(
-      { name: "fathom-mcp", version: "1.0.0" },
+      { name: "fathom-mcp", version: config.version },
       { capabilities: { logging: {}, tools: { listChanged: false } } },
     );
 
@@ -31,7 +32,7 @@ export class ClaudeTools {
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
-        return FathomController.listMeetings(userId, args);
+        return ToolHandlers.listMeetings(userId, args);
       },
     );
 
@@ -44,7 +45,7 @@ export class ClaudeTools {
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
-        return FathomController.searchMeetings(userId, args);
+        return ToolHandlers.searchMeetings(userId, args);
       },
     );
 
@@ -57,7 +58,7 @@ export class ClaudeTools {
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
-        return FathomController.getTranscript(userId, args);
+        return ToolHandlers.getTranscript(userId, args);
       },
     );
 
@@ -70,7 +71,7 @@ export class ClaudeTools {
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
-        return FathomController.getSummary(userId, args);
+        return ToolHandlers.getSummary(userId, args);
       },
     );
 
@@ -83,7 +84,7 @@ export class ClaudeTools {
       },
       async (_args, extra) => {
         const userId = this.getUserId(extra);
-        return FathomController.listTeams(userId);
+        return ToolHandlers.listTeams(userId);
       },
     );
 
@@ -96,7 +97,7 @@ export class ClaudeTools {
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
-        return FathomController.listTeamMembers(userId, args);
+        return ToolHandlers.listTeamMembers(userId, args);
       },
     );
   }

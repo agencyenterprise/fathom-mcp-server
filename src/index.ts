@@ -1,8 +1,14 @@
 import express from "express";
 import path from "path";
+import pinoHttp from "pino-http";
 import { fileURLToPath } from "url";
 import { config } from "./common/config";
-import { bearerAuthMiddleware, errorHandler } from "./middleware";
+import {
+  bearerAuthMiddleware,
+  errorHandler,
+  logger,
+  userRateLimiter,
+} from "./middleware";
 import { routes } from "./routes";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -12,21 +18,17 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
-
-app.use((req, _res, next) => {
-  console.log(`${req.method}  ${req.path}`);
-  next();
-});
+app.use(pinoHttp({ logger }));
 
 app.use("/health", routes.health);
 app.use("/.well-known", routes.wellKnown);
 app.use("/oauth", routes.oauth);
-app.use("/mcp", bearerAuthMiddleware, routes.mcp);
+app.use("/mcp", bearerAuthMiddleware, userRateLimiter, routes.mcp);
 
 app.get("/api", (_req, res) => {
   res.json({
     name: "fathom-mcp",
-    version: "1.0.0",
+    version: config.version,
     endpoints: {
       health: "/health",
       wellKnown: "/.well-known/oauth-protected-resource",
@@ -38,9 +40,31 @@ app.get("/api", (_req, res) => {
 
 app.use(errorHandler);
 
-app.listen(config.port, () => {
-  console.log(`Fathom MCP server running on port ${config.port}`);
-  console.log(`Environment: ${config.nodeEnv}`);
-  console.log(`Base URL: ${config.baseUrl}`);
-  console.log(`MCP endpoint: ${config.baseUrl}/mcp`);
+const server = app.listen(config.port, () => {
+  logger.info(
+    {
+      port: config.port,
+      env: config.nodeEnv,
+      baseUrl: config.baseUrl,
+      version: config.version,
+    },
+    "Fathom MCP server started",
+  );
 });
+
+function shutdown(signal: string) {
+  logger.info({ signal }, "Shutdown signal received, closing server");
+
+  server.close(() => {
+    logger.info("HTTP server closed");
+    process.exit(0);
+  });
+
+  setTimeout(() => {
+    logger.error("Forced shutdown after timeout");
+    process.exit(1);
+  }, 10000);
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

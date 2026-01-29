@@ -4,10 +4,10 @@ import {
   listTeamMembersInputSchema,
   recordingInputSchema,
   searchMeetingsInputSchema,
-} from "../claude/schema";
-import { FathomService } from "./service";
+} from "../common/schemas";
+import { FathomService } from "../modules/fathom/service";
 
-export class FathomController {
+export class ToolHandlers {
   static async listMeetings(
     userId: string,
     args: unknown,

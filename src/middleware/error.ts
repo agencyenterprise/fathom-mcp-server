@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
+import { logger } from "./logger";
 
 export class AppError extends Error {
   constructor(
@@ -18,7 +19,7 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ) {
-  console.error("Error:", err);
+  logger.error({ err }, "Request error");
 
   if (err instanceof AppError) {
     res.status(err.statusCode).json({

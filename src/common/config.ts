@@ -1,38 +1,45 @@
+import { createRequire } from "module";
 import { z } from "zod";
+
+const require = createRequire(import.meta.url);
+const pkg: { version: string } = require("../../package.json");
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production"]).default("development"),
-  PORT: z.string().default("3000"),
-  DATABASE_URL: z.string(),
-  BASE_URL: z.string(),
-  FATHOM_CLIENT_ID: z.string(),
-  FATHOM_CLIENT_SECRET: z.string(),
+  PORT: z.coerce.number().default(3000),
+  DATABASE_URL: z.string().min(1),
+  BASE_URL: z.string().url(),
+  FATHOM_CLIENT_ID: z.string().min(1),
+  FATHOM_CLIENT_SECRET: z.string().min(1),
 });
 
-type EnvSchemaType = z.infer<typeof envSchema>;
+function loadConfig() {
+  const result = envSchema.safeParse(process.env);
 
-const parsed = envSchema.safeParse(process.env);
+  if (!result.success) {
+    console.error("Invalid environment variables:", result.error.flatten());
+    process.exit(1);
+  }
 
-if (!parsed.success) {
-  console.error("Invalid environment variables:", parsed.error.flatten());
-  process.exit(1);
+  const env = result.data;
+
+  return {
+    version: pkg.version,
+    nodeEnv: env.NODE_ENV,
+    port: env.PORT,
+    databaseUrl: env.DATABASE_URL,
+    baseUrl: env.BASE_URL,
+    fathom: {
+      clientId: env.FATHOM_CLIENT_ID,
+      clientSecret: env.FATHOM_CLIENT_SECRET,
+      redirectUrl: `${env.BASE_URL}/oauth/fathom/callback`,
+      authUrl: "https://fathom.video",
+      apiUrl: "https://api.fathom.ai/external/v1",
+    },
+    claude: {
+      callbackUrl: "https://claude.ai/api/mcp/auth_callback",
+    },
+  } as const;
 }
 
-const env = parsed.data;
-
-export const config = {
-  nodeEnv: env.NODE_ENV,
-  port: parseInt(env.PORT, 10),
-  databaseUrl: env.DATABASE_URL,
-  baseUrl: env.BASE_URL,
-  fathom: {
-    clientId: env.FATHOM_CLIENT_ID,
-    clientSecret: env.FATHOM_CLIENT_SECRET,
-    redirectUrl: `${env.BASE_URL}/oauth/fathom/callback`,
-    authUrl: "https://fathom.video",
-    apiUrl: "https://api.fathom.ai/external/v1",
-  },
-  claude: {
-    callbackUrl: "https://claude.ai/api/mcp/auth_callback",
-  },
-} as const;
+export const config = loadConfig();

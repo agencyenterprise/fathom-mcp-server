@@ -110,8 +110,8 @@ export async function handleTokenExchange(req: Request, res: Response) {
     );
   }
 
-  // isnt it always used? check how they are created in the db or how they wer eudpated
-  if (codeRecord.used) {
+  const codeAlreadyExchanged = codeRecord.used !== null;
+  if (codeAlreadyExchanged) {
     throw new AppError(
       400,
       "invalid_grant",

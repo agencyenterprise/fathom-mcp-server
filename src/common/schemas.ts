@@ -2,19 +2,19 @@ import { z } from "zod";
 
 export const listMeetingsInputSchema = z.object({
   limit: z.number().min(1).max(100).optional(),
-  created_after: z.string().optional(),
-  created_before: z.string().optional(),
+  created_after: z.string().datetime().optional(),
+  created_before: z.string().datetime().optional(),
 });
 export type ListMeetingsInputType = z.infer<typeof listMeetingsInputSchema>;
 
 export const searchMeetingsInputSchema = z.object({
-  query: z.string(),
+  query: z.string().min(1),
   limit: z.number().min(1).max(50).optional(),
 });
 export type SearchMeetingsInputType = z.infer<typeof searchMeetingsInputSchema>;
 
 export const recordingInputSchema = z.object({
-  recording_id: z.string(),
+  recording_id: z.string().min(1),
 });
 export type RecordingInputType = z.infer<typeof recordingInputSchema>;
 
