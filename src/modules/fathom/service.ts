@@ -1,6 +1,14 @@
 import { eq } from "drizzle-orm";
 import { db, oauthTokens } from "../../db";
 import { config } from "../../shared/config";
+import {
+  BEARER_PREFIX,
+  FATHOM_API_SCOPE,
+  FATHOM_API_TIMEOUT_MS,
+  OAUTH_GRANT_TYPE_AUTH_CODE,
+  OAUTH_GRANT_TYPE_REFRESH,
+  OAUTH_RESPONSE_TYPE_CODE,
+} from "../../shared/constants";
 import { decrypt, encrypt } from "../../utils";
 import {
   fathomTokenResponseSchema,
@@ -26,29 +34,51 @@ export class FathomService {
   }
 
   private async fetchJson(endpoint: string): Promise<unknown> {
-    const response = await fetch(`${config.fathom.apiUrl}${endpoint}`, {
-      headers: {
-        Authorization: `Bearer ${this.accessToken}`,
-        "Content-Type": "application/json",
-      },
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      FATHOM_API_TIMEOUT_MS,
+    );
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`Fathom API error ${response.status}: ${errorBody}`);
+    try {
+      const response = await fetch(`${config.fathom.apiUrl}${endpoint}`, {
+        headers: {
+          Authorization: `${BEARER_PREFIX}${this.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`Fathom API error ${response.status}: ${errorBody}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("Fathom API request timed out");
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    return response.json();
   }
 
   private buildQueryString(
-    params?: Record<string, string | number | boolean | undefined>,
+    params?: Record<string, string | number | boolean | string[] | undefined>,
   ): string {
     if (!params) return "";
 
     const searchParams = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined) {
+      if (value === undefined) continue;
+
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          searchParams.append(key, item);
+        }
+      } else {
         searchParams.set(key, String(value));
       }
     }
@@ -65,6 +95,7 @@ export class FathomService {
       cursor: params?.cursor,
       created_after: params?.created_after,
       created_before: params?.created_before,
+      recorded_by: params?.recorded_by,
       include_transcript: params?.include_transcript,
       include_summary: params?.include_summary,
     });
@@ -99,8 +130,8 @@ export class FathomService {
     const params = new URLSearchParams({
       client_id: config.fathom.clientId,
       redirect_uri: config.fathom.redirectUrl,
-      response_type: "code",
-      scope: "public_api",
+      response_type: OAUTH_RESPONSE_TYPE_CODE,
+      scope: FATHOM_API_SCOPE,
       state,
     });
     return `${config.fathom.authUrl}/external/v1/oauth2/authorize?${params}`;
@@ -115,7 +146,7 @@ export class FathomService {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
-          grant_type: "authorization_code",
+          grant_type: OAUTH_GRANT_TYPE_AUTH_CODE,
           code,
           client_id: config.fathom.clientId,
           client_secret: config.fathom.clientSecret,
@@ -142,7 +173,7 @@ export class FathomService {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
-          grant_type: "refresh_token",
+          grant_type: OAUTH_GRANT_TYPE_REFRESH,
           refresh_token: refreshToken,
           client_id: config.fathom.clientId,
           client_secret: config.fathom.clientSecret,

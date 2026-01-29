@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { OAuthService } from "../modules/oauth";
 import { config } from "../shared/config";
+import { BEARER_PREFIX } from "../shared/constants";
 import { logger } from "./logger";
 
 declare global {
@@ -11,8 +12,6 @@ declare global {
     }
   }
 }
-
-const BEARER_PREFIX = "Bearer ";
 
 const WWW_AUTHENTICATE_VALUE = `Bearer resource_metadata="${config.baseUrl}/.well-known/oauth-protected-resource"`;
 
