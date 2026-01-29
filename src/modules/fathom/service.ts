@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db, oauthTokens } from "../../db";
 import { config } from "../../shared/config";
+import { decrypt, encrypt } from "../../utils";
 import {
   fathomTokenResponseSchema,
   listMeetingsResponseSchema,
@@ -163,20 +164,22 @@ export class FathomService {
     tokens: FathomTokenResponseType,
   ): Promise<void> {
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
+    const encryptedAccessToken = encrypt(tokens.access_token);
+    const encryptedRefreshToken = encrypt(tokens.refresh_token);
 
     await db
       .insert(oauthTokens)
       .values({
         userId,
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token,
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
         expiresAt,
       })
       .onConflictDoUpdate({
         target: oauthTokens.userId,
         set: {
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token,
+          accessToken: encryptedAccessToken,
+          refreshToken: encryptedRefreshToken,
           expiresAt,
           updatedAt: new Date(),
         },
@@ -202,11 +205,14 @@ export class FathomService {
       );
     }
 
+    const decryptedAccessToken = decrypt(stored.accessToken);
+
     if (stored.expiresAt > new Date()) {
-      return stored.accessToken;
+      return decryptedAccessToken;
     }
 
-    const refreshed = await this.refreshTokens(stored.refreshToken);
+    const decryptedRefreshToken = decrypt(stored.refreshToken);
+    const refreshed = await this.refreshTokens(decryptedRefreshToken);
     await this.storeTokens(userId, refreshed);
     return refreshed.access_token;
   }

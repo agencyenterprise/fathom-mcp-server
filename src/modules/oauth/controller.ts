@@ -135,8 +135,8 @@ export async function handleFathomCallback(req: Request, res: Response) {
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
           </svg>
         </div>
-        <h1>Fathom MCP Authentication Successful</h1>
-        <p>Follow the 'Open Link' back to Claude.</p>
+        <h1>Fathom Authentication Successful</h1>
+        <h1>Follow the 'Open Link' back to Claude.</h1>
         <p>After that, you can close this window at any time.</p>
       </main>
       <script>

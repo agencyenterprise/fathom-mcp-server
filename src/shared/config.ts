@@ -13,6 +13,13 @@ const envSchema = z.object({
   FATHOM_CLIENT_ID: z.string().min(1),
   FATHOM_CLIENT_SECRET: z.string().min(1),
   CLAUDE_AUTH_CALLBACK_URL: z.string().url(),
+  TOKEN_ENCRYPTION_KEY: z
+    .string()
+    .length(
+      64,
+      "TOKEN_ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)",
+    )
+    .regex(/^[0-9a-fA-F]+$/, "TOKEN_ENCRYPTION_KEY must be a hex string"),
 });
 
 function loadConfig() {
@@ -31,6 +38,7 @@ function loadConfig() {
     port: env.PORT,
     databaseUrl: env.DATABASE_URL,
     baseUrl: env.BASE_URL,
+    encryptionKey: Buffer.from(env.TOKEN_ENCRYPTION_KEY, "hex"),
     fathom: {
       clientId: env.FATHOM_CLIENT_ID,
       clientSecret: env.FATHOM_CLIENT_SECRET,
