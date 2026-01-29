@@ -8,7 +8,12 @@ export const logger = pino({
   level: config.nodeEnv === "production" ? "info" : "debug",
   transport: {
     target: "pino-pretty",
-    options: { colorize: true, singleLine: true },
+    options: {
+      colorize: true,
+      singleLine: true,
+      ignore: "pid,hostname",
+      translateTime: "HH:MM:ss.l",
+    },
   },
 });
 
