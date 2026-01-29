@@ -1,8 +1,9 @@
-import { createRequire } from "module";
+import { readFileSync } from "fs";
+import { join } from "path";
 import { z } from "zod";
 
-const require = createRequire(import.meta.url);
-const pkg: { version: string } = require("../../package.json");
+const pkgPath = join(process.cwd(), "package.json");
+const pkg: { version: string } = JSON.parse(readFileSync(pkgPath, "utf-8"));
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production"]).default("development"),
