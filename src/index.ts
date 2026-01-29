@@ -9,11 +9,15 @@ import {
   logger,
   userRateLimiter,
 } from "./middleware";
+import { SessionManager } from "./modules/mcp";
 import { routes } from "./routes";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
+const sessionManager = new SessionManager();
+
+app.locals.sessionManager = sessionManager;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -52,8 +56,12 @@ const server = app.listen(config.port, () => {
   );
 });
 
-function shutdown(signal: string) {
+sessionManager.startCleanupScheduler();
+
+async function shutdown(signal: string) {
   logger.info({ signal }, "Shutdown signal received, closing server");
+
+  await sessionManager.shutdown();
 
   server.close(() => {
     logger.info("HTTP server closed");

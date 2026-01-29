@@ -53,3 +53,12 @@ export const oauthClients = pgTable("oauth_clients", {
   redirectUris: json("redirect_uris").$type<string[]>().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const mcpSessions = pgTable("mcp_sessions", {
+  sessionId: uuid("session_id").primaryKey(),
+  userId: text("user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastAccessedAt: timestamp("last_accessed_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  terminatedAt: timestamp("terminated_at"),
+});

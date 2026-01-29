@@ -1,2 +1,2 @@
-export { McpController } from "./controller";
-export { McpService } from "./service";
+export * from "./controller";
+export { SessionManager } from "./sessions";

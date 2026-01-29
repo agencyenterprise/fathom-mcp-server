@@ -6,13 +6,18 @@ import {
   recordingInputSchema,
   searchMeetingsInputSchema,
 } from "../common/schemas";
-import { McpService } from "../modules/mcp/service";
 import { ToolHandlers } from "./handlers";
 
 export class ToolServer {
   private server: McpServer;
+  private getActiveTransportFn: (
+    sessionId: string,
+  ) => { userId: string } | undefined;
 
-  constructor() {
+  constructor(
+    getActiveTransportFn: (sessionId: string) => { userId: string } | undefined,
+  ) {
+    this.getActiveTransportFn = getActiveTransportFn;
     this.server = new McpServer(
       { name: "fathom-mcp", version: config.version },
       { capabilities: { logging: {}, tools: { listChanged: false } } },
@@ -109,7 +114,7 @@ export class ToolServer {
       throw new Error("No session ID provided in tool context");
     }
 
-    const session = McpService.getTransport(extraObj.sessionId);
+    const session = this.getActiveTransportFn(extraObj.sessionId);
     if (!session) {
       throw new Error(`Session not found: ${extraObj.sessionId}`);
     }

@@ -12,6 +12,7 @@ const envSchema = z.object({
   BASE_URL: z.string().url(),
   FATHOM_CLIENT_ID: z.string().min(1),
   FATHOM_CLIENT_SECRET: z.string().min(1),
+  CLAUDE_AUTH_CALLBACK_URL: z.string().url(),
 });
 
 function loadConfig() {
@@ -38,7 +39,7 @@ function loadConfig() {
       apiUrl: "https://api.fathom.ai/external/v1",
     },
     claude: {
-      callbackUrl: "https://claude.ai/api/mcp/auth_callback",
+      callbackUrl: env.CLAUDE_AUTH_CALLBACK_URL,
     },
   } as const;
 }
