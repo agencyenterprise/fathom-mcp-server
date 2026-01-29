@@ -1,6 +1,7 @@
-import { IncomingMessage, ServerResponse } from "http";
+import type { IncomingMessage, ServerResponse } from "http";
 import pino from "pino";
-import pinoHttp, { ReqId } from "pino-http";
+import type { ReqId } from "pino-http";
+import pinoHttp from "pino-http";
 import { config } from "../shared/config";
 
 let requestCounter = 0;

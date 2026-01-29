@@ -1,9 +1,10 @@
-import { NextFunction, Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { OAuthService } from "../modules/oauth";
 import { config } from "../shared/config";
 import { logger } from "./logger";
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       userId?: string;

@@ -6,7 +6,14 @@ import {
   recordingInputSchema,
   searchMeetingsInputSchema,
 } from "../shared/schemas";
-import { ToolHandlers } from "./handlers";
+import {
+  getSummary,
+  getTranscript,
+  listMeetings,
+  listTeamMembers,
+  listTeams,
+  searchMeetings,
+} from "./handlers";
 
 export class ToolServer {
   private server: McpServer;
@@ -37,7 +44,7 @@ export class ToolServer {
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
-        return ToolHandlers.listMeetings(userId, args);
+        return listMeetings(userId, args);
       },
     );
 
@@ -50,7 +57,7 @@ export class ToolServer {
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
-        return ToolHandlers.searchMeetings(userId, args);
+        return searchMeetings(userId, args);
       },
     );
 
@@ -63,7 +70,7 @@ export class ToolServer {
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
-        return ToolHandlers.getTranscript(userId, args);
+        return getTranscript(userId, args);
       },
     );
 
@@ -76,7 +83,7 @@ export class ToolServer {
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
-        return ToolHandlers.getSummary(userId, args);
+        return getSummary(userId, args);
       },
     );
 
@@ -89,7 +96,7 @@ export class ToolServer {
       },
       async (_args, extra) => {
         const userId = this.getUserId(extra);
-        return ToolHandlers.listTeams(userId);
+        return listTeams(userId);
       },
     );
 
@@ -102,7 +109,7 @@ export class ToolServer {
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
-        return ToolHandlers.listTeamMembers(userId, args);
+        return listTeamMembers(userId, args);
       },
     );
   }

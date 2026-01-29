@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "crypto";
-import { and, eq, gt, isNull, lt } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull, lt, or } from "drizzle-orm";
 import {
   accessTokens,
   authorizationCodes,
@@ -199,9 +199,12 @@ export class OAuthService {
       db
         .delete(authorizationCodes)
         .where(
-          and(
+          or(
             lt(authorizationCodes.expiresAt, now),
-            lt(authorizationCodes.used, staleUsedCodesCutoff),
+            and(
+              isNotNull(authorizationCodes.used),
+              lt(authorizationCodes.used, staleUsedCodesCutoff),
+            ),
           ),
         ),
 

@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { AppError } from "../../middleware/error";
 import { FathomService } from "../fathom";
 import {

@@ -1,5 +1,5 @@
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
-import { Request, Response } from "express";
+import type { Request, Response } from "express";
 import { AppError } from "../../middleware/error";
 import type { SessionManager } from "./sessions";
 

@@ -1,158 +1,111 @@
 # Fathom MCP
 
-An MCP (Model Context Protocol) server that connects Claude to the Fathom API, enabling AI-powered access to your meeting recordings, transcripts, and summaries.
+An MCP (Model Context Protocol) server that connects Claude to your Fathom meetings, transcripts, and AI summaries.
 
-## Features
+## What It Does
 
-- **OAuth 2.0 with PKCE** - Secure authentication flow between Claude, this server, and Fathom
-- **MCP Protocol** - Full MCP implementation using HTTP streamable transport
-- **Meeting Tools** - List meetings, search by title, get transcripts and AI summaries
-- **Team Management** - Access team and member information
-- **Session Management** - Persistent sessions with automatic cleanup
-- **Rate Limiting** - Per-user rate limiting to prevent abuse
+Once connected, Claude can:
 
-## Prerequisites
+- **List your meetings** with optional date filters
+- **Search meetings** by title
+- **Read full transcripts** from any recording
+- **Get AI summaries** of your meetings
+- **Access team information** and member lists
+
+## Quick Start
+
+### 1. Deploy the Server
+
+<!-- TODO: Add one-click deploy buttons for Railway, Render, etc. -->
+
+Deploy to your preferred hosting platform. You'll need:
 
 - Node.js 18+
 - PostgreSQL database
-- Fathom account with API access
-- Fathom OAuth application credentials
 
-## Installation
+### 2. Configure Environment
 
 ```bash
-git clone https://github.com/your-username/fathom-mcp.git
-cd fathom-mcp
-npm install
+# Server
+NODE_ENV=production
+PORT=3000
+BASE_URL=https://your-deployed-server.com
+
+# Database
+DATABASE_URL=postgresql://user:password@host:5432/fathom_mcp
+
+# Fathom OAuth (from your Fathom app settings)
+FATHOM_CLIENT_ID=your_client_id
+FATHOM_CLIENT_SECRET=your_client_secret
+
+# Claude callback
+CLAUDE_AUTH_CALLBACK_URL=https://claude.ai/oauth/callback
 ```
 
-## Configuration
+### 3. Set Up Fathom OAuth
 
-Copy the example environment file and configure your values:
+1. Log into [Fathom](https://fathom.video)
+2. Go to **Settings → Integrations → OAuth Applications**
+3. Create a new application
+4. Set redirect URI to: `{YOUR_BASE_URL}/oauth/fathom/callback`
+5. Copy the client ID and secret to your environment
 
-```bash
-cp .env.example .env
-```
-
-### Environment Variables
-
-| Variable                   | Description                        |
-| -------------------------- | ---------------------------------- |
-| `NODE_ENV`                 | `development` or `production`      |
-| `PORT`                     | Server port (default: 3000)        |
-| `BASE_URL`                 | Public URL of your deployed server |
-| `DATABASE_URL`             | PostgreSQL connection string       |
-| `FATHOM_CLIENT_ID`         | OAuth client ID from Fathom        |
-| `FATHOM_CLIENT_SECRET`     | OAuth client secret from Fathom    |
-| `CLAUDE_AUTH_CALLBACK_URL` | Claude's OAuth callback URL        |
-
-### Fathom OAuth Setup
-
-1. Log into your Fathom account
-2. Navigate to Settings → Integrations → OAuth Applications
-3. Create a new OAuth application
-4. Set the redirect URI to `{BASE_URL}/oauth/fathom/callback`
-5. Copy the client ID and secret to your `.env` file
-
-## Database Setup
-
-This project uses Drizzle ORM with PostgreSQL.
+### 4. Initialize the Database
 
 ```bash
-# Push schema to database (development)
 npm run db:push
-
-# Or generate and run migrations (production)
-npm run db:generate
-npm run db:migrate
 ```
 
-## Usage
+### 5. Connect from Claude
 
-### Development
+<!-- TODO: Add instructions for connecting MCP server to Claude Desktop or Claude.ai -->
 
-```bash
-npm run dev
+Add the server URL to your Claude MCP configuration:
+
+```
+https://your-deployed-server.com/mcp
 ```
 
-### Production
+## Available Tools
 
-```bash
-npm run build
-npm start
-```
+| Tool                | Description                              |
+| ------------------- | ---------------------------------------- |
+| `list_meetings`     | List recent meetings with date filters   |
+| `search_meetings`   | Search meetings by title                 |
+| `get_transcript`    | Get full transcript for a recording      |
+| `get_summary`       | Get AI-generated summary for a recording |
+| `list_teams`        | List all accessible teams                |
+| `list_team_members` | List members of a specific team          |
+
+### Example Usage in Claude
+
+> "Show me my meetings from last week"
+
+> "Get the transcript from my standup yesterday"
+
+> "Summarize my meeting with the design team"
 
 ## API Endpoints
 
-### Health Check
+| Endpoint                                      | Description                 |
+| --------------------------------------------- | --------------------------- |
+| `GET /health`                                 | Server health status        |
+| `GET /.well-known/oauth-authorization-server` | OAuth server metadata       |
+| `GET /.well-known/oauth-protected-resource`   | OAuth resource metadata     |
+| `POST /oauth/register`                        | Dynamic client registration |
+| `GET /oauth/authorize`                        | Start OAuth flow            |
+| `POST /oauth/token`                           | Token exchange              |
+| `POST /mcp`                                   | MCP message endpoint        |
+| `GET /mcp`                                    | MCP SSE stream              |
+| `DELETE /mcp`                                 | Terminate MCP session       |
 
-- `GET /health` - Server and database health status
+## Limitations
 
-### OAuth Discovery
-
-- `GET /.well-known/oauth-protected-resource` - OAuth resource metadata
-- `GET /.well-known/oauth-authorization-server` - OAuth server metadata
-
-### OAuth Flow
-
-- `POST /oauth/register` - Dynamic client registration
-- `GET /oauth/authorize` - Start authorization flow
-- `GET /oauth/fathom/callback` - Fathom OAuth callback
-- `POST /oauth/token` - Exchange code for access token
-
-### MCP Protocol
-
-- `POST /mcp` - Initialize session or send messages
-- `GET /mcp` - Retrieve session messages (SSE)
-- `DELETE /mcp` - Terminate session
-
-## MCP Tools
-
-| Tool                | Description                                      |
-| ------------------- | ------------------------------------------------ |
-| `list_meetings`     | List recent meetings with optional date filters  |
-| `search_meetings`   | Search meetings by title (client-side filtering) |
-| `get_transcript`    | Get full transcript for a recording              |
-| `get_summary`       | Get AI-generated summary for a recording         |
-| `list_teams`        | List all accessible teams                        |
-| `list_team_members` | List members of a team                           |
-
-### Limitations
-
-- `search_meetings` performs client-side filtering as Fathom's API does not provide a search endpoint. For users with many meetings, consider using `list_meetings` with date filters instead.
-
-## Project Structure
-
-```
-src/
-├── shared/          # Config, constants, shared schemas
-├── db/              # Drizzle ORM setup and schema
-├── middleware/      # Auth, error handling, logging, rate limiting
-├── modules/
-│   ├── fathom/      # Fathom API client and schemas
-│   ├── mcp/         # MCP session management
-│   └── oauth/       # OAuth service and controllers
-├── routes/          # Express route definitions
-├── tools/           # MCP tool definitions and handlers
-└── index.ts         # Application entry point
-```
-
-## Development
-
-### Scripts
-
-| Script                | Description                              |
-| --------------------- | ---------------------------------------- |
-| `npm run dev`         | Start development server with hot reload |
-| `npm run build`       | Build for production                     |
-| `npm start`           | Start production server                  |
-| `npm run db:generate` | Generate database migrations             |
-| `npm run db:migrate`  | Run database migrations                  |
-| `npm run db:push`     | Push schema directly to database         |
+- `search_meetings` performs client-side filtering since Fathom's API doesn't provide a search endpoint. For users with many meetings, use `list_meetings` with date filters instead.
 
 ## Contributing
 
-Contributions are welcome. Please open an issue to discuss proposed changes before submitting a pull request.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
 ## License
 
