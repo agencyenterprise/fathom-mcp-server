@@ -1,12 +1,12 @@
 import express from "express";
 import path from "path";
-import pinoHttp from "pino-http";
 import { fileURLToPath } from "url";
 import { config } from "./common/config";
 import {
   bearerAuthMiddleware,
   errorHandler,
   logger,
+  requestLogger,
   userRateLimiter,
 } from "./middleware";
 import { SessionManager } from "./modules/mcp";
@@ -22,7 +22,7 @@ app.locals.sessionManager = sessionManager;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
-app.use(pinoHttp({ logger }));
+app.use(requestLogger);
 
 app.use("/health", routes.health);
 app.use("/.well-known", routes.wellKnown);
