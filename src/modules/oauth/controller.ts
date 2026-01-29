@@ -138,6 +138,11 @@ export async function handleFathomCallback(req: Request, res: Response) {
         <h1>Fathom MCP Authentication Successful</h1>
         <p>You can close this window at any time.</p>
       </main>
+      <script>
+        setTimeout(() => {
+          window.location.href = "${redirectUrl.toString()}";
+        }, 1500);
+      </script>
     </body>
     </html>
   `);
