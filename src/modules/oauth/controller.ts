@@ -94,7 +94,58 @@ export async function handleFathomCallback(req: Request, res: Response) {
   redirectUrl.searchParams.set("code", authCode);
   redirectUrl.searchParams.set("state", stateRecord.claudeState);
 
-  res.redirect(redirectUrl.toString());
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Connected - Fathom MCP</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #0a0a0a;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          color: #fff;
+        }
+        main { text-align: center; }
+        .checkmark {
+          width: 64px;
+          height: 64px;
+          margin: 0 auto 24px;
+          border-radius: 50%;
+          background: #22c55e;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .checkmark svg { width: 32px; height: 32px; }
+        h1 { font-size: 24px; font-weight: 500; margin-bottom: 8px; }
+        p { color: #888; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <main>
+        <div class="checkmark">
+          <svg fill="none" stroke="#fff" stroke-width="3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+        <h1>Connected to Fathom</h1>
+        <p>Redirecting you back to Claude...</p>
+      </main>
+      <script>
+        setTimeout(() => {
+          window.location.href = "${redirectUrl.toString()}";
+        }, 1500);
+      </script>
+    </body>
+    </html>
+  `);
 }
 
 export async function handleTokenExchange(req: Request, res: Response) {
