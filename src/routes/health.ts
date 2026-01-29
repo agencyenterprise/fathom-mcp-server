@@ -1,8 +1,8 @@
 import { sql } from "drizzle-orm";
 import { Router } from "express";
-import { config } from "../common/config";
 import { db } from "../db";
 import { logger } from "../middleware/logger";
+import { config } from "../shared/config";
 
 const router = Router();
 

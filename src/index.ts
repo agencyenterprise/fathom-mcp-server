@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import { config } from "./common/config";
 import {
   bearerAuthMiddleware,
   errorHandler,
@@ -11,6 +10,7 @@ import {
 } from "./middleware";
 import { SessionManager } from "./modules/mcp";
 import { routes } from "./routes";
+import { config } from "./shared/config";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

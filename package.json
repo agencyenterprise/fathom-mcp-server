@@ -1,7 +1,25 @@
 {
   "name": "fathom-mcp",
   "version": "1.0.0",
+  "description": "MCP server connecting Claude to Fathom meeting recordings, transcripts, and summaries",
   "type": "module",
+  "license": "MIT",
+  "author": "Jeff Patterson <jeff@ae.studio>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aestudio/fathom-mcp"
+  },
+  "keywords": [
+    "mcp",
+    "fathom",
+    "claude",
+    "meetings",
+    "transcripts",
+    "ai"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsup && cp -r public dist/",

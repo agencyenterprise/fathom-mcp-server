@@ -1,13 +1,15 @@
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { randomUUID } from "crypto";
 import { and, eq, isNotNull, lt, or } from "drizzle-orm";
+import { db, mcpSessions } from "../../db";
+import { logger } from "../../middleware";
 import {
   SESSION_CLEANUP_INTERVAL_MS,
   SESSION_TTL_MS,
-} from "../../common/constants";
-import { db, mcpSessions } from "../../db";
-import { logger } from "../../middleware";
+  STALE_TERMINATION_CUTOFF_MS,
+} from "../../shared/constants";
 import { ToolServer } from "../../tools";
+import { OAuthService } from "../oauth/service";
 
 interface ActiveTransport {
   transport: StreamableHTTPServerTransport;
@@ -179,10 +181,10 @@ export class SessionManager {
     this.activeTransports.delete(sessionId);
   }
 
-  async cleanupExpiredSessions(): Promise<void> {
+  async cleanupExpiredData(): Promise<void> {
     const now = new Date();
     const staleTerminationCutoff = new Date(
-      now.getTime() - 24 * 60 * 60 * 1000,
+      now.getTime() - STALE_TERMINATION_CUTOFF_MS,
     );
 
     try {
@@ -215,7 +217,6 @@ export class SessionManager {
       }
 
       if (sessionsToCleanup.length > 0) {
-        const deletedIds = sessionsToCleanup.map((s) => s.sessionId);
         await db
           .delete(mcpSessions)
           .where(
@@ -229,12 +230,22 @@ export class SessionManager {
           );
 
         logger.info(
-          { count: deletedIds.length, deletedIds },
+          { sessions: sessionsToCleanup.length },
           "Cleaned up expired/terminated sessions",
         );
       }
+
+      const oauthCleanupResult = await OAuthService.cleanupExpiredOAuthData();
+      const totalOAuthCleaned =
+        oauthCleanupResult.oauthStates +
+        oauthCleanupResult.authorizationCodes +
+        oauthCleanupResult.accessTokens;
+
+      if (totalOAuthCleaned > 0) {
+        logger.info(oauthCleanupResult, "Cleaned up expired OAuth data");
+      }
     } catch (error) {
-      logger.error({ error }, "Error during session cleanup");
+      logger.error({ error }, "Error during data cleanup");
     }
   }
 
@@ -245,13 +256,13 @@ export class SessionManager {
     }
 
     this.cleanupIntervalId = setInterval(
-      () => this.cleanupExpiredSessions(),
+      () => this.cleanupExpiredData(),
       SESSION_CLEANUP_INTERVAL_MS,
     );
 
     logger.info(
       { intervalMs: SESSION_CLEANUP_INTERVAL_MS },
-      "Session cleanup scheduler started",
+      "Data cleanup scheduler started",
     );
   }
 

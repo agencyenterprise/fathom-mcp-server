@@ -146,22 +146,13 @@ export async function handleFathomCallback(req: Request, res: Response) {
 export async function handleTokenExchange(req: Request, res: Response) {
   const { code, code_verifier } = tokenExchangeBodySchema.parse(req.body);
 
-  const codeRecord = await OAuthService.getValidAuthorizationCode(code);
+  const codeRecord = await OAuthService.consumeAuthorizationCode(code);
 
   if (!codeRecord) {
     throw new AppError(
       400,
       "invalid_grant",
-      "Invalid or expired authorization code",
-    );
-  }
-
-  const codeAlreadyExchanged = codeRecord.used !== null;
-  if (codeAlreadyExchanged) {
-    throw new AppError(
-      400,
-      "invalid_grant",
-      "Authorization code has already been used",
+      "Invalid, expired, or already used authorization code",
     );
   }
 
@@ -184,8 +175,6 @@ export async function handleTokenExchange(req: Request, res: Response) {
       throw new AppError(400, "invalid_grant", "Invalid code_verifier");
     }
   }
-
-  await OAuthService.markAuthorizationCodeUsed(code);
 
   const token = await OAuthService.createAccessToken(
     codeRecord.userId,

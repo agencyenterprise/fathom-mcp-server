@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { config } from "../common/config";
+import { config } from "../shared/config";
 
 const router = Router();
 

@@ -1,11 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { config } from "../common/config";
+import { config } from "../shared/config";
 import {
   listMeetingsInputSchema,
   listTeamMembersInputSchema,
   recordingInputSchema,
   searchMeetingsInputSchema,
-} from "../common/schemas";
+} from "../shared/schemas";
 import { ToolHandlers } from "./handlers";
 
 export class ToolServer {

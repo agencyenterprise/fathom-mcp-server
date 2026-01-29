@@ -1,11 +1,17 @@
-import { randomUUID } from "crypto";
 import { IncomingMessage, ServerResponse } from "http";
 import pino from "pino";
 import pinoHttp, { ReqId } from "pino-http";
-import { config } from "../common/config";
+import { config } from "../shared/config";
 
-export const logger = pino({
-  level: config.nodeEnv === "production" ? "info" : "debug",
+let requestCounter = 0;
+
+function generateRequestId(): ReqId {
+  requestCounter += 1;
+  return requestCounter;
+}
+
+const developmentConfig = {
+  level: "debug",
   transport: {
     target: "pino-pretty",
     options: {
@@ -15,14 +21,19 @@ export const logger = pino({
       translateTime: "HH:MM:ss.l",
     },
   },
-});
+};
+
+const productionConfig = {
+  level: "info",
+};
+
+export const logger = pino(
+  config.nodeEnv === "production" ? productionConfig : developmentConfig,
+);
 
 export const requestLogger = pinoHttp({
   logger,
-  genReqId: (req: IncomingMessage): ReqId =>
-    (req.headers["x-railway-request-id"] as string) ||
-    (req.headers["x-request-id"] as string) ||
-    randomUUID(),
+  genReqId: generateRequestId,
   serializers: {
     req: (req) => ({
       method: req.method,

@@ -1,11 +1,5 @@
 import { createHash, randomUUID } from "crypto";
-import { and, eq, gt } from "drizzle-orm";
-import {
-  ACCESS_TOKEN_TTL_MS,
-  AUTH_CODE_TTL_MS,
-  DEFAULT_SCOPE,
-  OAUTH_STATE_TTL_MS,
-} from "../../common/constants";
+import { and, eq, gt, isNull, lt } from "drizzle-orm";
 import {
   accessTokens,
   authorizationCodes,
@@ -13,6 +7,13 @@ import {
   oauthClients,
   oauthStates,
 } from "../../db";
+import {
+  ACCESS_TOKEN_TTL_MS,
+  AUTH_CODE_TTL_MS,
+  DEFAULT_SCOPE,
+  OAUTH_STATE_TTL_MS,
+  STALE_TERMINATION_CUTOFF_MS,
+} from "../../shared/constants";
 import type { CreateOAuthStateParamsType } from "./schema";
 
 export class OAuthService {
@@ -104,26 +105,32 @@ export class OAuthService {
     return code;
   }
 
-  static async getValidAuthorizationCode(code: string) {
-    const result = await db
-      .select()
-      .from(authorizationCodes)
-      .where(
-        and(
-          eq(authorizationCodes.code, code),
-          gt(authorizationCodes.expiresAt, new Date()),
-        ),
-      )
-      .limit(1);
+  static async consumeAuthorizationCode(code: string) {
+    return await db.transaction(async (tx) => {
+      const result = await tx
+        .select()
+        .from(authorizationCodes)
+        .where(
+          and(
+            eq(authorizationCodes.code, code),
+            gt(authorizationCodes.expiresAt, new Date()),
+            isNull(authorizationCodes.used),
+          ),
+        )
+        .limit(1);
 
-    return result[0] ?? null;
-  }
+      const codeRecord = result[0];
+      if (!codeRecord) {
+        return null;
+      }
 
-  static async markAuthorizationCodeUsed(code: string): Promise<void> {
-    await db
-      .update(authorizationCodes)
-      .set({ used: new Date() })
-      .where(eq(authorizationCodes.code, code));
+      await tx
+        .update(authorizationCodes)
+        .set({ used: new Date() })
+        .where(eq(authorizationCodes.code, code));
+
+      return codeRecord;
+    });
   }
 
   static async createAccessToken(
@@ -174,5 +181,37 @@ export class OAuthService {
     }
 
     return computedChallenge === codeChallenge;
+  }
+
+  static async cleanupExpiredOAuthData(): Promise<{
+    oauthStates: number;
+    authorizationCodes: number;
+    accessTokens: number;
+  }> {
+    const now = new Date();
+    const staleUsedCodesCutoff = new Date(
+      now.getTime() - STALE_TERMINATION_CUTOFF_MS,
+    );
+
+    const [statesResult, codesResult, tokensResult] = await Promise.all([
+      db.delete(oauthStates).where(lt(oauthStates.expiresAt, now)),
+
+      db
+        .delete(authorizationCodes)
+        .where(
+          and(
+            lt(authorizationCodes.expiresAt, now),
+            lt(authorizationCodes.used, staleUsedCodesCutoff),
+          ),
+        ),
+
+      db.delete(accessTokens).where(lt(accessTokens.expiresAt, now)),
+    ]);
+
+    return {
+      oauthStates: statesResult.rowCount ?? 0,
+      authorizationCodes: codesResult.rowCount ?? 0,
+      accessTokens: tokensResult.rowCount ?? 0,
+    };
   }
 }

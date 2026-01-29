@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
-import { config } from "../common/config";
 import { OAuthService } from "../modules/oauth";
+import { config } from "../shared/config";
 import { logger } from "./logger";
 
 declare global {

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
-import { config } from "../../common/config";
 import { db, oauthTokens } from "../../db";
+import { config } from "../../shared/config";
 import {
   fathomTokenResponseSchema,
   listMeetingsResponseSchema,

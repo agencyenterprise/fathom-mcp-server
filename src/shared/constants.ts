@@ -5,3 +5,4 @@ export const DEFAULT_SCOPE = "fathom:read";
 
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 export const SESSION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+export const STALE_TERMINATION_CUTOFF_MS = 24 * 60 * 60 * 1000; // 24 hours

@@ -1,12 +1,12 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { logger } from "../middleware";
+import { FathomService } from "../modules/fathom/service";
 import {
   listMeetingsInputSchema,
   listTeamMembersInputSchema,
   recordingInputSchema,
   searchMeetingsInputSchema,
-} from "../common/schemas";
-import { logger } from "../middleware";
-import { FathomService } from "../modules/fathom/service";
+} from "../shared/schemas";
 
 export class ToolHandlers {
   static async listMeetings(
