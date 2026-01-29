@@ -5,6 +5,7 @@ import {
   recordingInputSchema,
   searchMeetingsInputSchema,
 } from "../common/schemas";
+import { logger } from "../middleware";
 import { FathomService } from "../modules/fathom/service";
 
 export class ToolHandlers {
@@ -20,6 +21,7 @@ export class ToolHandlers {
         content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
       };
     } catch (error) {
+      logger.error({ tool: "list_meetings", error, userId }, "Tool error");
       return {
         content: [{ type: "text", text: (error as Error).message }],
         isError: true,
@@ -39,6 +41,7 @@ export class ToolHandlers {
         content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
       };
     } catch (error) {
+      logger.error({ tool: "get_transcript", error, userId }, "Tool error");
       return {
         content: [{ type: "text", text: (error as Error).message }],
         isError: true,
@@ -58,6 +61,7 @@ export class ToolHandlers {
         content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
       };
     } catch (error) {
+      logger.error({ tool: "get_summary", error, userId }, "Tool error");
       return {
         content: [{ type: "text", text: (error as Error).message }],
         isError: true,
@@ -73,6 +77,7 @@ export class ToolHandlers {
         content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
       };
     } catch (error) {
+      logger.error({ tool: "list_teams", error, userId }, "Tool error");
       return {
         content: [{ type: "text", text: (error as Error).message }],
         isError: true,
@@ -92,6 +97,7 @@ export class ToolHandlers {
         content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
       };
     } catch (error) {
+      logger.error({ tool: "list_team_members", error, userId }, "Tool error");
       return {
         content: [{ type: "text", text: (error as Error).message }],
         isError: true,
@@ -128,6 +134,7 @@ export class ToolHandlers {
         ],
       };
     } catch (error) {
+      logger.error({ tool: "search_meetings", error, userId }, "Tool error");
       return {
         content: [{ type: "text", text: (error as Error).message }],
         isError: true,
