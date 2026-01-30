@@ -8,6 +8,9 @@ export const STALE_TERMINATION_CUTOFF_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export const FATHOM_API_TIMEOUT_MS = 30 * 1000; // 30 seconds
 
+export const DEFAULT_MEETINGS_LIMIT = 25;
+export const SEARCH_POOL_SIZE = 100;
+
 export const BEARER_PREFIX = "Bearer ";
 export const DEFAULT_SCOPE = "fathom:read";
 export const OAUTH_GRANT_TYPE_AUTH_CODE = "authorization_code";

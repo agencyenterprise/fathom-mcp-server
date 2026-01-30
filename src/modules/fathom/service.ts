@@ -9,21 +9,21 @@ import {
   OAUTH_GRANT_TYPE_REFRESH,
   OAUTH_RESPONSE_TYPE_CODE,
 } from "../../shared/constants";
-import { decrypt, encrypt } from "../../utils";
+import type { ListMeetingsReqType } from "../../shared/schemas";
+import { decrypt, encrypt } from "../../utils/crypto";
 import {
-  fathomTokenResponseSchema,
-  listMeetingsResponseSchema,
-  listTeamMembersResponseSchema,
-  listTeamsResponseSchema,
-  summaryResponseSchema,
-  transcriptResponseSchema,
-  type FathomTokenResponseType,
-  type ListMeetingsParamsType,
-  type ListMeetingsResponseType,
-  type ListTeamMembersResponseType,
-  type ListTeamsResponseType,
-  type SummaryResponseType,
-  type TranscriptResponseType,
+  fathomTokenResSchema,
+  listMeetingsResSchema,
+  listTeamMembersResSchema,
+  listTeamsResSchema,
+  summaryResSchema,
+  transcriptResSchema,
+  type FathomTokenResType,
+  type ListMeetingsResType,
+  type ListTeamMembersResType,
+  type ListTeamsResType,
+  type SummaryResType,
+  type TranscriptResType,
 } from "./schema";
 
 export class FathomService {
@@ -88,42 +88,46 @@ export class FathomService {
   }
 
   async listMeetings(
-    params?: ListMeetingsParamsType,
-  ): Promise<ListMeetingsResponseType> {
+    params?: ListMeetingsReqType,
+  ): Promise<ListMeetingsResType> {
     const query = this.buildQueryString({
       limit: params?.limit,
       cursor: params?.cursor,
       created_after: params?.created_after,
       created_before: params?.created_before,
+      calendar_invitees_domains: params?.calendar_invitees_domains,
+      calendar_invitees_domains_type: params?.calendar_invitees_domains_type,
+      teams: params?.teams,
       recorded_by: params?.recorded_by,
-      include_transcript: params?.include_transcript,
-      include_summary: params?.include_summary,
+      include_action_items: params?.include_action_items,
     });
     const data = await this.fetchJson(`/meetings${query}`);
-    return listMeetingsResponseSchema.parse(data);
+    return listMeetingsResSchema.parse(data);
   }
 
-  async getTranscript(recordingId: string): Promise<TranscriptResponseType> {
+  async getTranscript(recordingId: string): Promise<TranscriptResType> {
     const data = await this.fetchJson(`/recordings/${recordingId}/transcript`);
-    return transcriptResponseSchema.parse(data);
+    return transcriptResSchema.parse(data);
   }
 
-  async getSummary(recordingId: string): Promise<SummaryResponseType> {
+  async getSummary(recordingId: string): Promise<SummaryResType> {
     const data = await this.fetchJson(`/recordings/${recordingId}/summary`);
-    return summaryResponseSchema.parse(data);
+    return summaryResSchema.parse(data);
   }
 
-  async listTeams(): Promise<ListTeamsResponseType> {
-    const data = await this.fetchJson("/teams");
-    return listTeamsResponseSchema.parse(data);
+  async listTeams(cursor?: string): Promise<ListTeamsResType> {
+    const query = this.buildQueryString({ cursor });
+    const data = await this.fetchJson(`/teams${query}`);
+    return listTeamsResSchema.parse(data);
   }
 
   async listTeamMembers(
     teamName?: string,
-  ): Promise<ListTeamMembersResponseType> {
-    const query = this.buildQueryString({ team: teamName });
+    cursor?: string,
+  ): Promise<ListTeamMembersResType> {
+    const query = this.buildQueryString({ team: teamName, cursor });
     const data = await this.fetchJson(`/team_members${query}`);
-    return listTeamMembersResponseSchema.parse(data);
+    return listTeamMembersResSchema.parse(data);
   }
 
   static getAuthorizationUrl(state: string): string {
@@ -139,7 +143,7 @@ export class FathomService {
 
   static async exchangeCodeForTokens(
     code: string,
-  ): Promise<FathomTokenResponseType> {
+  ): Promise<FathomTokenResType> {
     const response = await fetch(
       `${config.fathom.authUrl}/external/v1/oauth2/token`,
       {
@@ -161,12 +165,12 @@ export class FathomService {
     }
 
     const data = await response.json();
-    return fathomTokenResponseSchema.parse(data);
+    return fathomTokenResSchema.parse(data);
   }
 
   static async refreshTokens(
     refreshToken: string,
-  ): Promise<FathomTokenResponseType> {
+  ): Promise<FathomTokenResType> {
     const response = await fetch(
       `${config.fathom.authUrl}/external/v1/oauth2/token`,
       {
@@ -183,16 +187,18 @@ export class FathomService {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new Error(`Token refresh failed: ${errorBody}`);
+      throw new Error(
+        `Fathom session expired or was revoked. Please reconnect: go to Claude Settings > Connectors > Fathom MCP > Remove, then reconnect. (Details: ${errorBody})`,
+      );
     }
 
     const data = await response.json();
-    return fathomTokenResponseSchema.parse(data);
+    return fathomTokenResSchema.parse(data);
   }
 
   static async storeTokens(
     userId: string,
-    tokens: FathomTokenResponseType,
+    tokens: FathomTokenResType,
   ): Promise<void> {
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
     const encryptedAccessToken = encrypt(tokens.access_token);
@@ -232,7 +238,7 @@ export class FathomService {
 
     if (!stored) {
       throw new Error(
-        "No valid access token found. Please reconnect your Fathom account.",
+        "No Fathom account connected. Please connect: go to Claude Settings > Connectors > Add Custom Connector and authenticate with Fathom.",
       );
     }
 

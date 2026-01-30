@@ -14,4 +14,4 @@ router.get("/authorize", asyncHandler(handleAuthorize));
 router.get("/fathom/callback", asyncHandler(handleFathomCallback));
 router.post("/token", asyncHandler(handleTokenExchange));
 
-export const oauthRouter = router;
+export default router;

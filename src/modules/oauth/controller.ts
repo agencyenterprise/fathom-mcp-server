@@ -1,17 +1,17 @@
 import { randomUUID } from "crypto";
 import type { Request, Response } from "express";
 import { AppError } from "../../middleware/error";
-import { FathomService } from "../fathom";
+import { FathomService } from "../fathom/service";
 import {
-  authorizeQuerySchema,
-  clientRegistrationBodySchema,
-  fathomCallbackQuerySchema,
-  tokenExchangeBodySchema,
+  authorizeReqSchema,
+  clientRegistrationReqSchema,
+  fathomCallbackReqSchema,
+  tokenExchangeReqSchema,
 } from "./schema";
 import { OAuthService } from "./service";
 
 export async function handleRegister(req: Request, res: Response) {
-  const body = clientRegistrationBodySchema.parse(req.body);
+  const body = clientRegistrationReqSchema.parse(req.body);
 
   const { clientId } = await OAuthService.registerClient(
     body.redirect_uris,
@@ -36,7 +36,7 @@ export async function handleAuthorize(req: Request, res: Response) {
     state,
     code_challenge,
     code_challenge_method,
-  } = authorizeQuerySchema.parse(req.query);
+  } = authorizeReqSchema.parse(req.query);
 
   const client = await OAuthService.getClient(client_id);
   if (!client) {
@@ -64,7 +64,7 @@ export async function handleAuthorize(req: Request, res: Response) {
 }
 
 export async function handleFathomCallback(req: Request, res: Response) {
-  const { code, state } = fathomCallbackQuerySchema.parse(req.query);
+  const { code, state } = fathomCallbackReqSchema.parse(req.query);
 
   const stateRecord = await OAuthService.getValidOAuthState(state);
 
@@ -90,67 +90,16 @@ export async function handleFathomCallback(req: Request, res: Response) {
     stateRecord.claudeCodeChallengeMethod,
   );
 
-  const redirectUrl = new URL(stateRecord.claudeRedirectUri);
-  redirectUrl.searchParams.set("code", authCode);
-  redirectUrl.searchParams.set("state", stateRecord.claudeState);
+  const claudeRedirectUrl = new URL(stateRecord.claudeRedirectUri);
+  claudeRedirectUrl.searchParams.set("code", authCode);
+  claudeRedirectUrl.searchParams.set("state", stateRecord.claudeState);
 
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Connected - Fathom MCP</title>
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #0a0a0a;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          color: #fff;
-        }
-        main { text-align: center; }
-        .checkmark {
-          width: 64px;
-          height: 64px;
-          margin: 0 auto 24px;
-          border-radius: 50%;
-          background: #22c55e;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .checkmark svg { width: 32px; height: 32px; }
-        h1 { font-size: 24px; font-weight: 500; margin-bottom: 8px; }
-        p { color: #888; font-size: 14px; }
-      </style>
-    </head>
-    <body>
-      <main>
-        <div class="checkmark">
-          <svg fill="none" stroke="#fff" stroke-width="3" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-          </svg>
-        </div>
-        <p>Fathom Authentication Successful!</p>
-        <h1>Follow the 'Open Link' back to Claude.</h1>
-        <p>After that, you can close this window at any time.</p>
-      </main>
-      <script>
-        setTimeout(() => {
-          window.location.href = "${redirectUrl.toString()}";
-        }, 50);
-      </script>
-    </body>
-    </html>
-  `);
+  const successUrl = `/oauth-success.html?redirect=${encodeURIComponent(claudeRedirectUrl.toString())}`;
+  res.redirect(successUrl);
 }
 
 export async function handleTokenExchange(req: Request, res: Response) {
-  const { code, code_verifier } = tokenExchangeBodySchema.parse(req.body);
+  const { code, code_verifier } = tokenExchangeReqSchema.parse(req.body);
 
   const codeRecord = await OAuthService.consumeAuthorizationCode(code);
 

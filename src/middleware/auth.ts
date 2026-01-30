@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { OAuthService } from "../modules/oauth";
+import { OAuthService } from "../modules/oauth/service";
 import { config } from "../shared/config";
 import { BEARER_PREFIX } from "../shared/constants";
 import { logger } from "./logger";

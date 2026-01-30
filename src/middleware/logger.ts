@@ -11,26 +11,22 @@ function generateRequestId(): ReqId {
   return requestCounter;
 }
 
-const developmentConfig = {
-  level: "debug",
-  transport: {
-    target: "pino-pretty",
-    options: {
-      colorize: true,
-      singleLine: true,
-      ignore: "pid,hostname",
-      translateTime: "HH:MM:ss.l",
+const isDev = config.nodeEnv === "development";
+
+export const logger = pino({
+  level: isDev ? "debug" : "info",
+  ...(isDev && {
+    transport: {
+      target: "pino-pretty",
+      options: {
+        colorize: true,
+        singleLine: true,
+        ignore: "pid,hostname",
+        translateTime: "HH:MM:ss.l",
+      },
     },
-  },
-};
-
-const productionConfig = {
-  level: "info",
-};
-
-export const logger = pino(
-  config.nodeEnv === "production" ? productionConfig : developmentConfig,
-);
+  }),
+});
 
 export const requestLogger = pinoHttp({
   logger,

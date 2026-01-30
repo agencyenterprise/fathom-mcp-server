@@ -1,18 +1,27 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import { bearerAuthMiddleware } from "./middleware/auth";
+import { errorHandler } from "./middleware/error";
+import { logger, requestLogger } from "./middleware/logger";
+import { userRateLimiter } from "./middleware/rateLimit";
+import { SessionManager } from "./modules/mcp/sessions";
 import {
-  bearerAuthMiddleware,
-  errorHandler,
-  logger,
-  requestLogger,
-  userRateLimiter,
-} from "./middleware";
-import { SessionManager } from "./modules/mcp";
-import { routes } from "./routes";
+  healthRouter,
+  mcpRouter,
+  oauthRouter,
+  wellKnownRouter,
+} from "./routes";
 import { config } from "./shared/config";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Production: public/ copied to dist/public/ by build script
+// Development: public/ at project root
+const publicPath =
+  config.nodeEnv === "production"
+    ? path.join(__dirname, "public")
+    : path.join(__dirname, "..", "public");
 
 const app = express();
 const sessionManager = new SessionManager();
@@ -21,13 +30,13 @@ app.locals.sessionManager = sessionManager;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(publicPath));
 app.use(requestLogger);
 
-app.use("/health", routes.health);
-app.use("/.well-known", routes.wellKnown);
-app.use("/oauth", routes.oauth);
-app.use("/mcp", bearerAuthMiddleware, userRateLimiter, routes.mcp);
+app.use("/health", healthRouter);
+app.use("/.well-known", wellKnownRouter);
+app.use("/oauth", oauthRouter);
+app.use("/mcp", bearerAuthMiddleware, userRateLimiter, mcpRouter);
 
 app.get("/api", (_req, res) => {
   res.json({

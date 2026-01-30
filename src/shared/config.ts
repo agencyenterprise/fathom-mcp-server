@@ -1,6 +1,9 @@
+import dotenv from "dotenv";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { z } from "zod";
+
+dotenv.config();
 
 const pkgPath = join(process.cwd(), "package.json");
 const pkg: { version: string } = JSON.parse(readFileSync(pkgPath, "utf-8"));

@@ -6,10 +6,11 @@ import type {
 } from "@modelcontextprotocol/sdk/types.js";
 import { config } from "../shared/config";
 import {
-  listMeetingsInputSchema,
-  listTeamMembersInputSchema,
-  recordingInputSchema,
-  searchMeetingsInputSchema,
+  listMeetingsReqSchema,
+  listTeamMembersReqSchema,
+  listTeamsReqSchema,
+  recordingReqSchema,
+  searchMeetingsReqSchema,
 } from "../shared/schemas";
 import {
   getSummary,
@@ -46,8 +47,11 @@ export class ToolServer {
       {
         title: "List Meetings",
         description:
-          "List your recent Fathom meetings with optional date filters",
-        inputSchema: listMeetingsInputSchema.shape,
+          "List Fathom meetings with optional filters: limit (1-100), cursor (pagination), " +
+          "created_after, created_before (ISO timestamps), calendar_invitees_domains (company domains), " +
+          "calendar_invitees_domains_type (all/only_internal/one_or_more_external), " +
+          "teams (team names), recorded_by (recorder emails), include_action_items (boolean)",
+        inputSchema: listMeetingsReqSchema.shape,
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
@@ -59,8 +63,11 @@ export class ToolServer {
       "search_meetings",
       {
         title: "Search Meetings",
-        description: "Search your Fathom meetings by title",
-        inputSchema: searchMeetingsInputSchema.shape,
+        description:
+          "Search Fathom meetings by title. Required: query (search term). " +
+          "Optional filters: limit (1-100), created_after, created_before (ISO timestamps), " +
+          "calendar_invitees_domains, calendar_invitees_domains_type, teams, recorded_by",
+        inputSchema: searchMeetingsReqSchema.shape,
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
@@ -73,7 +80,7 @@ export class ToolServer {
       {
         title: "Get Transcript",
         description: "Get the full transcript for a specific meeting recording",
-        inputSchema: recordingInputSchema.shape,
+        inputSchema: recordingReqSchema.shape,
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
@@ -86,7 +93,7 @@ export class ToolServer {
       {
         title: "Get Summary",
         description: "Get the AI-generated summary for a meeting recording",
-        inputSchema: recordingInputSchema.shape,
+        inputSchema: recordingReqSchema.shape,
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
@@ -98,12 +105,13 @@ export class ToolServer {
       "list_teams",
       {
         title: "List Teams",
-        description: "List all Fathom teams you have access to",
-        inputSchema: {},
+        description:
+          "List all Fathom teams you have access to. Optional: cursor for pagination.",
+        inputSchema: listTeamsReqSchema.shape,
       },
-      async (_args, extra) => {
+      async (args, extra) => {
         const userId = this.getUserId(extra);
-        return listTeams(userId);
+        return listTeams(userId, args);
       },
     );
 
@@ -111,8 +119,9 @@ export class ToolServer {
       "list_team_members",
       {
         title: "List Team Members",
-        description: "List members of a specific Fathom team",
-        inputSchema: listTeamMembersInputSchema.shape,
+        description:
+          "List members of a Fathom team. Optional: team_name to filter by team, cursor for pagination.",
+        inputSchema: listTeamMembersReqSchema.shape,
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);

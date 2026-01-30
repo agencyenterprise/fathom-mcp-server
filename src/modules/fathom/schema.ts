@@ -1,12 +1,12 @@
 import { z } from "zod";
 
-export const fathomTokenResponseSchema = z.object({
+export const fathomTokenResSchema = z.object({
   access_token: z.string(),
   refresh_token: z.string(),
   expires_in: z.number(),
   token_type: z.string(),
 });
-export type FathomTokenResponseType = z.infer<typeof fathomTokenResponseSchema>;
+export type FathomTokenResType = z.infer<typeof fathomTokenResSchema>;
 
 export const speakerSchema = z.object({
   display_name: z.string(),
@@ -85,35 +85,22 @@ export const meetingSchema = z.object({
 });
 export type MeetingType = z.infer<typeof meetingSchema>;
 
-export const listMeetingsResponseSchema = z.object({
+export const listMeetingsResSchema = z.object({
   items: z.array(meetingSchema),
   limit: z.number().nullable(),
   next_cursor: z.string().nullable(),
 });
-export type ListMeetingsResponseType = z.infer<
-  typeof listMeetingsResponseSchema
->;
+export type ListMeetingsResType = z.infer<typeof listMeetingsResSchema>;
 
-export const listMeetingsParamsSchema = z.object({
-  limit: z.number().optional(),
-  cursor: z.string().optional(),
-  created_after: z.string().optional(),
-  created_before: z.string().optional(),
-  recorded_by: z.array(z.string()).optional(),
-  include_transcript: z.boolean().optional(),
-  include_summary: z.boolean().optional(),
-});
-export type ListMeetingsParamsType = z.infer<typeof listMeetingsParamsSchema>;
-
-export const transcriptResponseSchema = z.object({
+export const transcriptResSchema = z.object({
   transcript: z.array(transcriptEntrySchema),
 });
-export type TranscriptResponseType = z.infer<typeof transcriptResponseSchema>;
+export type TranscriptResType = z.infer<typeof transcriptResSchema>;
 
-export const summaryResponseSchema = z.object({
+export const summaryResSchema = z.object({
   summary: summarySchema,
 });
-export type SummaryResponseType = z.infer<typeof summaryResponseSchema>;
+export type SummaryResType = z.infer<typeof summaryResSchema>;
 
 export const teamSchema = z.object({
   name: z.string(),
@@ -121,12 +108,12 @@ export const teamSchema = z.object({
 });
 export type TeamType = z.infer<typeof teamSchema>;
 
-export const listTeamsResponseSchema = z.object({
+export const listTeamsResSchema = z.object({
   items: z.array(teamSchema),
   limit: z.number(),
   next_cursor: z.string().nullable(),
 });
-export type ListTeamsResponseType = z.infer<typeof listTeamsResponseSchema>;
+export type ListTeamsResType = z.infer<typeof listTeamsResSchema>;
 
 export const teamMemberSchema = z.object({
   name: z.string(),
@@ -135,11 +122,9 @@ export const teamMemberSchema = z.object({
 });
 export type TeamMemberType = z.infer<typeof teamMemberSchema>;
 
-export const listTeamMembersResponseSchema = z.object({
+export const listTeamMembersResSchema = z.object({
   items: z.array(teamMemberSchema),
   limit: z.number(),
   next_cursor: z.string().nullable(),
 });
-export type ListTeamMembersResponseType = z.infer<
-  typeof listTeamMembersResponseSchema
->;
+export type ListTeamMembersResType = z.infer<typeof listTeamMembersResSchema>;

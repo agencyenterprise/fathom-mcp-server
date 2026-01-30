@@ -1,11 +1,4 @@
-import { healthRouter } from "./health";
-import { mcpRouter } from "./mcp";
-import { oauthRouter } from "./oauth";
-import { wellKnownRouter } from "./well-known";
-
-export const routes = {
-  health: healthRouter,
-  mcp: mcpRouter,
-  oauth: oauthRouter,
-  wellKnown: wellKnownRouter,
-};
+export { default as healthRouter } from "./health";
+export { default as mcpRouter } from "./mcp";
+export { default as oauthRouter } from "./oauth";
+export { default as wellKnownRouter } from "./well-known";

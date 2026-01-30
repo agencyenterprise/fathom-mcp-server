@@ -2,13 +2,13 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { randomUUID } from "crypto";
 import { and, eq, isNotNull, lt, or } from "drizzle-orm";
 import { db, mcpSessions } from "../../db";
-import { logger } from "../../middleware";
+import { logger } from "../../middleware/logger";
 import {
   SESSION_CLEANUP_INTERVAL_MS,
   SESSION_TTL_MS,
   STALE_TERMINATION_CUTOFF_MS,
 } from "../../shared/constants";
-import { ToolServer } from "../../tools";
+import { ToolServer } from "../../tools/server";
 import { OAuthService } from "../oauth/service";
 
 interface ActiveTransport {

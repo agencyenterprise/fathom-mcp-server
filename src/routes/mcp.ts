@@ -12,4 +12,4 @@ router.post("/", asyncHandler(routeToSessionOrInitialize));
 router.get("/", asyncHandler(retrieveAuthenticatedSession));
 router.delete("/", asyncHandler(terminateAuthenticatedSession));
 
-export const mcpRouter = router;
+export default router;

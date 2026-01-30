@@ -1,11 +1,13 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { logger } from "../middleware";
+import { logger } from "../middleware/logger";
 import { FathomService } from "../modules/fathom/service";
+import { DEFAULT_MEETINGS_LIMIT, SEARCH_POOL_SIZE } from "../shared/constants";
 import {
-  listMeetingsInputSchema,
-  listTeamMembersInputSchema,
-  recordingInputSchema,
-  searchMeetingsInputSchema,
+  listMeetingsReqSchema,
+  listTeamMembersReqSchema,
+  listTeamsReqSchema,
+  recordingReqSchema,
+  searchMeetingsReqSchema,
 } from "../shared/schemas";
 
 export async function listMeetings(
@@ -13,9 +15,12 @@ export async function listMeetings(
   args: unknown,
 ): Promise<CallToolResult> {
   try {
-    const input = listMeetingsInputSchema.parse(args);
+    const input = listMeetingsReqSchema.parse(args);
     const service = await FathomService.createAuthorizedService(userId);
-    const data = await service.listMeetings(input);
+    const data = await service.listMeetings({
+      ...input,
+      limit: input.limit ?? DEFAULT_MEETINGS_LIMIT,
+    });
     return {
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     };
@@ -33,7 +38,7 @@ export async function getTranscript(
   args: unknown,
 ): Promise<CallToolResult> {
   try {
-    const input = recordingInputSchema.parse(args);
+    const input = recordingReqSchema.parse(args);
     const service = await FathomService.createAuthorizedService(userId);
     const data = await service.getTranscript(input.recording_id);
     return {
@@ -53,7 +58,7 @@ export async function getSummary(
   args: unknown,
 ): Promise<CallToolResult> {
   try {
-    const input = recordingInputSchema.parse(args);
+    const input = recordingReqSchema.parse(args);
     const service = await FathomService.createAuthorizedService(userId);
     const data = await service.getSummary(input.recording_id);
     return {
@@ -68,10 +73,14 @@ export async function getSummary(
   }
 }
 
-export async function listTeams(userId: string): Promise<CallToolResult> {
+export async function listTeams(
+  userId: string,
+  args: unknown,
+): Promise<CallToolResult> {
   try {
+    const input = listTeamsReqSchema.parse(args);
     const service = await FathomService.createAuthorizedService(userId);
-    const data = await service.listTeams();
+    const data = await service.listTeams(input.cursor);
     return {
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     };
@@ -89,9 +98,9 @@ export async function listTeamMembers(
   args: unknown,
 ): Promise<CallToolResult> {
   try {
-    const input = listTeamMembersInputSchema.parse(args);
+    const input = listTeamMembersReqSchema.parse(args);
     const service = await FathomService.createAuthorizedService(userId);
-    const data = await service.listTeamMembers(input.team_name);
+    const data = await service.listTeamMembers(input.team_name, input.cursor);
     return {
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     };
@@ -109,9 +118,13 @@ export async function searchMeetings(
   args: unknown,
 ): Promise<CallToolResult> {
   try {
-    const input = searchMeetingsInputSchema.parse(args);
+    const input = searchMeetingsReqSchema.parse(args);
     const service = await FathomService.createAuthorizedService(userId);
-    const meetings = await service.listMeetings({ limit: input.limit ?? 50 });
+
+    const meetings = await service.listMeetings({
+      ...input,
+      limit: SEARCH_POOL_SIZE,
+    });
 
     const query = input.query.toLowerCase();
     const filtered = meetings.items.filter(
@@ -120,12 +133,14 @@ export async function searchMeetings(
         m.meeting_title?.toLowerCase().includes(query),
     );
 
+    const resultsLimit = input.limit ?? DEFAULT_MEETINGS_LIMIT;
+
     return {
       content: [
         {
           type: "text",
           text: JSON.stringify(
-            { items: filtered.slice(0, input.limit ?? 10) },
+            { items: filtered.slice(0, resultsLimit) },
             null,
             2,
           ),

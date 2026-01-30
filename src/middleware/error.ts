@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 import { logger } from "./logger";
 
+// todo moved to /shared directory
 export class AppError extends Error {
   constructor(
     public statusCode: number,

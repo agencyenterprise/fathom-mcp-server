@@ -31,4 +31,4 @@ router.get("/oauth-authorization-server", (_req, res) => {
   });
 });
 
-export const wellKnownRouter = router;
+export default router;

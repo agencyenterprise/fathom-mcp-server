@@ -29,4 +29,4 @@ router.get("/", async (_req, res) => {
   });
 });
 
-export const healthRouter = router;
+export default router;
