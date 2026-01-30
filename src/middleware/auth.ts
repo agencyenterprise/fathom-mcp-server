@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { OAuthService } from "../modules/oauth/service";
+import { getClaudeAccessToken } from "../modules/oauth/claude";
 import { config } from "../shared/config";
 import { BEARER_PREFIX } from "../shared/constants";
 import { logger } from "./logger";
@@ -40,7 +40,7 @@ export async function bearerAuthMiddleware(
   const token = authHeader.slice(BEARER_PREFIX.length);
 
   try {
-    const tokenRecord = await OAuthService.getAccessToken(token);
+    const tokenRecord = await getClaudeAccessToken(token);
 
     if (!tokenRecord) {
       sendUnauthorized(res, "invalid_token", "Token not found or expired");

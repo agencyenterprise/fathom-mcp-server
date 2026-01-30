@@ -1,5 +1,21 @@
 import { z } from "zod";
 
+// ═══════════════════════════════════════════════════════════════════════════
+// FATHOM-FACING: Token Response
+// Validates the response from Fathom's token endpoint (both initial and refresh).
+// ═══════════════════════════════════════════════════════════════════════════
+export const fathomTokenResSchema = z.object({
+  access_token: z.string(),
+  refresh_token: z.string(),
+  expires_in: z.number(),
+  token_type: z.string(),
+});
+export type FathomTokenResType = z.infer<typeof fathomTokenResSchema>;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CLAUDE-FACING: Client Registration Request
+// Validates the request body when Claude registers as an OAuth client.
+// ═══════════════════════════════════════════════════════════════════════════
 export const clientRegistrationReqSchema = z.object({
   redirect_uris: z.array(z.string().url()),
   client_name: z.string().optional(),
@@ -11,6 +27,11 @@ export type ClientRegistrationReqType = z.infer<
   typeof clientRegistrationReqSchema
 >;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CLAUDE-FACING: Authorization Request
+// Validates query params when Claude redirects user to /authorize.
+// Contains Claude's state, PKCE challenge, and redirect_uri to restore later.
+// ═══════════════════════════════════════════════════════════════════════════
 export const authorizeReqSchema = z.object({
   client_id: z.string(),
   redirect_uri: z.string().url(),
@@ -21,12 +42,22 @@ export const authorizeReqSchema = z.object({
 });
 export type AuthorizeReqType = z.infer<typeof authorizeReqSchema>;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// FATHOM-FACING: Callback Request
+// Validates query params when Fathom redirects user back to us.
+// Contains Fathom's authorization code and our internal state.
+// ═══════════════════════════════════════════════════════════════════════════
 export const fathomCallbackReqSchema = z.object({
   code: z.string(),
   state: z.string(),
 });
 export type FathomCallbackReqType = z.infer<typeof fathomCallbackReqSchema>;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CLAUDE-FACING: Token Exchange Request
+// Validates request body when Claude exchanges our auth code for our token.
+// Contains our authorization code and PKCE verifier (if PKCE was used).
+// ═══════════════════════════════════════════════════════════════════════════
 export const tokenExchangeReqSchema = z.object({
   grant_type: z.literal("authorization_code"),
   code: z.string(),
@@ -36,13 +67,17 @@ export const tokenExchangeReqSchema = z.object({
 });
 export type TokenExchangeReqType = z.infer<typeof tokenExchangeReqSchema>;
 
-export const createOAuthStateParamsSchema = z.object({
+// ═══════════════════════════════════════════════════════════════════════════
+// BRIDGE: Internal State Parameters
+// Schema for storing Claude's OAuth params while user authenticates at Fathom.
+// ═══════════════════════════════════════════════════════════════════════════
+export const claudeOAuthStateReqSchema = z.object({
   clientId: z.string(),
   redirectUri: z.string(),
   state: z.string(),
   codeChallenge: z.string().optional(),
   codeChallengeMethod: z.string().optional(),
 });
-export type CreateOAuthStateParamsType = z.infer<
-  typeof createOAuthStateParamsSchema
+export type claudeOAuthStateReqType = z.infer<
+  typeof claudeOAuthStateReqSchema
 >;

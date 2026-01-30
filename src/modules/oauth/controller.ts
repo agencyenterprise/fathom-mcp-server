@@ -1,35 +1,49 @@
 import { randomUUID } from "crypto";
 import type { Request, Response } from "express";
 import { oauthError, validationError } from "../../shared/errors";
-import { FathomService } from "../fathom/service";
+import {
+  consumeClaudeAuthCode,
+  createClaudeAccessToken,
+  createClaudeAuthCode,
+  createClaudeState,
+  deleteClaudeState,
+  findClaudeClient,
+  getClaudeState,
+  createClaudeClient,
+  verifyPKCE,
+} from "./claude";
+import {
+  exchangeCodeForFathomTokens,
+  getFathomAuthUrl,
+  storeFathomTokens,
+} from "./fathom";
 import {
   authorizeReqSchema,
   clientRegistrationReqSchema,
   fathomCallbackReqSchema,
   tokenExchangeReqSchema,
 } from "./schema";
-import { OAuthService } from "./service";
 
-export async function handleRegister(req: Request, res: Response) {
-  const body = clientRegistrationReqSchema.parse(req.body);
+export async function postClaudeClient(req: Request, res: Response) {
+  const { redirect_uris, client_name } = clientRegistrationReqSchema.parse(req.body);
 
-  const { clientId } = await OAuthService.registerClient(
-    body.redirect_uris,
-    body.client_name,
+  const { clientId } = await createClaudeClient(
+    redirect_uris,
+    client_name,
   );
 
   res.status(201).json({
     client_id: clientId,
     client_id_issued_at: Math.floor(Date.now() / 1000),
-    redirect_uris: body.redirect_uris,
-    client_name: body.client_name,
+    redirect_uris,
+    client_name,
     token_endpoint_auth_method: "none",
     grant_types: ["authorization_code"],
     response_types: ["code"],
   });
 }
 
-export async function handleAuthorize(req: Request, res: Response) {
+export async function getClaudeClient(req: Request, res: Response) {
   const {
     client_id,
     redirect_uri,
@@ -38,7 +52,7 @@ export async function handleAuthorize(req: Request, res: Response) {
     code_challenge_method,
   } = authorizeReqSchema.parse(req.query);
 
-  const client = await OAuthService.getClient(client_id);
+  const client = await findClaudeClient(client_id);
   if (!client) {
     throw oauthError("invalid_client", "Unknown client_id");
   }
@@ -50,7 +64,7 @@ export async function handleAuthorize(req: Request, res: Response) {
     );
   }
 
-  const internalState = await OAuthService.createOAuthState({
+  const internalState = await createClaudeState({
     clientId: client_id,
     redirectUri: redirect_uri,
     state,
@@ -58,45 +72,44 @@ export async function handleAuthorize(req: Request, res: Response) {
     codeChallengeMethod: code_challenge_method,
   });
 
-  const fathomAuthUrl = FathomService.getAuthorizationUrl(internalState);
+  const fathomAuthUrl = getFathomAuthUrl(internalState);
   res.redirect(fathomAuthUrl);
 }
 
-export async function handleFathomCallback(req: Request, res: Response) {
+export async function getFathomCallback(req: Request, res: Response) {
   const { code, state } = fathomCallbackReqSchema.parse(req.query);
+  const claudeState = await getClaudeState(state);
 
-  const stateRecord = await OAuthService.getValidOAuthState(state);
-
-  if (!stateRecord) {
-    throw oauthError("invalid_state", "Invalid or expired state parameter");
+  if (!claudeState) {
+    throw oauthError("invalid_claude_state", "Invalid or expired claude state parameter");
   }
-
-  const tokens = await FathomService.exchangeCodeForTokens(code);
+  
+  const tokens = await exchangeCodeForFathomTokens(code);
   const userId = randomUUID();
-  await FathomService.storeTokens(userId, tokens);
+  await storeFathomTokens(userId, tokens);
+  
+  await deleteClaudeState(state);
 
-  await OAuthService.deleteOAuthState(state);
-
-  const authCode = await OAuthService.createAuthorizationCode(
+  const claudeAuthCode = await createClaudeAuthCode(
     userId,
-    stateRecord.clientId,
-    stateRecord.claudeRedirectUri,
-    stateRecord.claudeCodeChallenge,
-    stateRecord.claudeCodeChallengeMethod,
+    claudeState.clientId,
+    claudeState.claudeRedirectUri,
+    claudeState.claudeCodeChallenge,
+    claudeState.claudeCodeChallengeMethod,
   );
 
-  const claudeRedirectUrl = new URL(stateRecord.claudeRedirectUri);
-  claudeRedirectUrl.searchParams.set("code", authCode);
-  claudeRedirectUrl.searchParams.set("state", stateRecord.claudeState);
+  const claudeRedirectUrl = new URL(claudeState.claudeRedirectUri);
+  claudeRedirectUrl.searchParams.set("code", claudeAuthCode);
+  claudeRedirectUrl.searchParams.set("state", claudeState.claudeState);
 
   const successUrl = `/oauth-success.html?redirect=${encodeURIComponent(claudeRedirectUrl.toString())}`;
   res.redirect(successUrl);
 }
 
-export async function handleTokenExchange(req: Request, res: Response) {
+export async function postClaudeAccessToken(req: Request, res: Response) {
   const { code, code_verifier } = tokenExchangeReqSchema.parse(req.body);
 
-  const codeRecord = await OAuthService.consumeAuthorizationCode(code);
+  const codeRecord = await consumeClaudeAuthCode(code);
 
   if (!codeRecord) {
     throw oauthError(
@@ -110,7 +123,7 @@ export async function handleTokenExchange(req: Request, res: Response) {
       throw validationError("Missing code_verifier for PKCE");
     }
 
-    const isValid = OAuthService.verifyPKCE(
+    const isValid = verifyPKCE(
       code_verifier,
       codeRecord.claudeCodeChallenge,
       codeRecord.claudeCodeChallengeMethod,
@@ -121,10 +134,7 @@ export async function handleTokenExchange(req: Request, res: Response) {
     }
   }
 
-  const token = await OAuthService.createAccessToken(
-    codeRecord.userId,
-    codeRecord.scope,
-  );
+  const token = await createClaudeAccessToken(codeRecord.userId, codeRecord.scope);
 
   res.json({
     access_token: token,

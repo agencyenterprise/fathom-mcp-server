@@ -2,17 +2,17 @@ import { Router } from "express";
 import { asyncHandler } from "../middleware/error";
 import { oauthRateLimiter } from "../middleware/rateLimit";
 import {
-  handleAuthorize,
-  handleFathomCallback,
-  handleRegister,
-  handleTokenExchange,
+  getClaudeClient,
+  getFathomCallback,
+  postClaudeClient,
+  postClaudeAccessToken,
 } from "../modules/oauth/controller";
 
 const router = Router();
 
-router.post("/register", oauthRateLimiter, asyncHandler(handleRegister));
-router.get("/authorize", oauthRateLimiter, asyncHandler(handleAuthorize));
-router.get("/fathom/callback", asyncHandler(handleFathomCallback));
-router.post("/token", oauthRateLimiter, asyncHandler(handleTokenExchange));
+router.post("/register", oauthRateLimiter, asyncHandler(postClaudeClient));
+router.get("/authorize", oauthRateLimiter, asyncHandler(getClaudeClient));
+router.get("/fathom/callback", asyncHandler(getFathomCallback));
+router.post("/token", oauthRateLimiter, asyncHandler(postClaudeAccessToken));
 
 export default router;

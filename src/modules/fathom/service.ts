@@ -1,26 +1,15 @@
-import { eq } from "drizzle-orm";
-import { db, fathomOAuthTokens } from "../../db";
 import { logger } from "../../middleware/logger";
 import { config } from "../../shared/config";
-import {
-  BEARER_PREFIX,
-  FATHOM_API_SCOPE,
-  FATHOM_API_TIMEOUT_MS,
-  OAUTH_GRANT_TYPE_AUTH_CODE,
-  OAUTH_GRANT_TYPE_REFRESH,
-  OAUTH_RESPONSE_TYPE_CODE,
-} from "../../shared/constants";
-import { authError, fathomApiError } from "../../shared/errors";
+import { BEARER_PREFIX, FATHOM_API_TIMEOUT_MS } from "../../shared/constants";
+import { fathomApiError } from "../../shared/errors";
 import type { ListMeetingsReqType } from "../../shared/schemas";
-import { decrypt, encrypt } from "../../utils/crypto";
+import { getValidFathomAccessToken } from "../oauth/fathom";
 import {
-  fathomTokenResSchema,
   listMeetingsResSchema,
   listTeamMembersResSchema,
   listTeamsResSchema,
   summaryResSchema,
   transcriptResSchema,
-  type FathomTokenResType,
   type ListMeetingsResType,
   type ListTeamMembersResType,
   type ListTeamsResType,
@@ -28,14 +17,19 @@ import {
   type TranscriptResType,
 } from "./schema";
 
-export class FathomService {
+// ═══════════════════════════════════════════════════════════════════════════
+// Fathom API client.
+// Makes authenticated API calls to Fathom's REST API.
+// OAuth operations live in oauth/fathom.ts (FathomOAuthService).
+// ═══════════════════════════════════════════════════════════════════════════
+export class FathomAPIClient {
   private accessToken: string;
 
   constructor(accessToken: string) {
     this.accessToken = accessToken;
   }
 
-  private async fetchJson(endpoint: string): Promise<unknown> {
+  private async getRequest(endpoint: string): Promise<unknown> {
     const controller = new AbortController();
     const timeoutId = setTimeout(
       () => controller.abort(),
@@ -74,7 +68,7 @@ export class FathomService {
     }
   }
 
-  private buildQueryString(
+  private buildReqQuery(
     params?: Record<string, string | number | boolean | string[] | undefined>,
   ): string {
     if (!params) return "";
@@ -99,7 +93,7 @@ export class FathomService {
   async listMeetings(
     params?: ListMeetingsReqType,
   ): Promise<ListMeetingsResType> {
-    const query = this.buildQueryString({
+    const query = this.buildReqQuery({
       limit: params?.limit,
       cursor: params?.cursor,
       created_after: params?.created_after,
@@ -110,23 +104,23 @@ export class FathomService {
       recorded_by: params?.recorded_by,
       include_action_items: params?.include_action_items,
     });
-    const data = await this.fetchJson(`/meetings${query}`);
+    const data = await this.getRequest(`/meetings${query}`);
     return listMeetingsResSchema.parse(data);
   }
 
   async getTranscript(recordingId: string): Promise<TranscriptResType> {
-    const data = await this.fetchJson(`/recordings/${recordingId}/transcript`);
+    const data = await this.getRequest(`/recordings/${recordingId}/transcript`);
     return transcriptResSchema.parse(data);
   }
 
   async getSummary(recordingId: string): Promise<SummaryResType> {
-    const data = await this.fetchJson(`/recordings/${recordingId}/summary`);
+    const data = await this.getRequest(`/recordings/${recordingId}/summary`);
     return summaryResSchema.parse(data);
   }
 
   async listTeams(cursor?: string): Promise<ListTeamsResType> {
-    const query = this.buildQueryString({ cursor });
-    const data = await this.fetchJson(`/teams${query}`);
+    const query = this.buildReqQuery({ cursor });
+    const data = await this.getRequest(`/teams${query}`);
     return listTeamsResSchema.parse(data);
   }
 
@@ -134,141 +128,13 @@ export class FathomService {
     teamName?: string,
     cursor?: string,
   ): Promise<ListTeamMembersResType> {
-    const query = this.buildQueryString({ team: teamName, cursor });
-    const data = await this.fetchJson(`/team_members${query}`);
+    const query = this.buildReqQuery({ team: teamName, cursor });
+    const data = await this.getRequest(`/team_members${query}`);
     return listTeamMembersResSchema.parse(data);
   }
 
-  static getAuthorizationUrl(state: string): string {
-    const params = new URLSearchParams({
-      client_id: config.fathom.clientId,
-      redirect_uri: config.fathom.redirectUrl,
-      response_type: OAUTH_RESPONSE_TYPE_CODE,
-      scope: FATHOM_API_SCOPE,
-      state,
-    });
-    return `${config.fathom.authUrl}/external/v1/oauth2/authorize?${params}`;
-  }
-
-  static async exchangeCodeForTokens(
-    code: string,
-  ): Promise<FathomTokenResType> {
-    const response = await fetch(
-      `${config.fathom.authUrl}/external/v1/oauth2/token`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          grant_type: OAUTH_GRANT_TYPE_AUTH_CODE,
-          code,
-          client_id: config.fathom.clientId,
-          client_secret: config.fathom.clientSecret,
-          redirect_uri: config.fathom.redirectUrl,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      logger.error(
-        { status: response.status, errorBody },
-        "Fathom token exchange failed",
-      );
-      throw fathomApiError("Failed to exchange authorization code");
-    }
-
-    const data = await response.json();
-    return fathomTokenResSchema.parse(data);
-  }
-
-  static async refreshTokens(
-    refreshToken: string,
-  ): Promise<FathomTokenResType> {
-    const response = await fetch(
-      `${config.fathom.authUrl}/external/v1/oauth2/token`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          grant_type: OAUTH_GRANT_TYPE_REFRESH,
-          refresh_token: refreshToken,
-          client_id: config.fathom.clientId,
-          client_secret: config.fathom.clientSecret,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      throw fathomApiError(
-        "Fathom session expired or was revoked. Please reconnect via Claude Settings > Connectors.",
-      );
-    }
-
-    const data = await response.json();
-    return fathomTokenResSchema.parse(data);
-  }
-
-  static async storeTokens(
-    userId: string,
-    tokens: FathomTokenResType,
-  ): Promise<void> {
-    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
-    const encryptedAccessToken = encrypt(tokens.access_token);
-    const encryptedRefreshToken = encrypt(tokens.refresh_token);
-
-    await db
-      .insert(fathomOAuthTokens)
-      .values({
-        userId,
-        accessToken: encryptedAccessToken,
-        refreshToken: encryptedRefreshToken,
-        expiresAt,
-      })
-      .onConflictDoUpdate({
-        target: fathomOAuthTokens.userId,
-        set: {
-          accessToken: encryptedAccessToken,
-          refreshToken: encryptedRefreshToken,
-          expiresAt,
-          updatedAt: new Date(),
-        },
-      });
-  }
-
-  static async getStoredTokens(userId: string) {
-    const result = await db
-      .select()
-      .from(fathomOAuthTokens)
-      .where(eq(fathomOAuthTokens.userId, userId))
-      .limit(1);
-
-    return result[0] ?? null;
-  }
-
-  static async getValidAccessToken(userId: string): Promise<string> {
-    const stored = await this.getStoredTokens(userId);
-
-    if (!stored) {
-      throw authError(
-        "no_fathom_account",
-        "No Fathom account connected. Please connect via Claude Settings > Connectors.",
-      );
-    }
-
-    const decryptedAccessToken = decrypt(stored.accessToken);
-
-    if (stored.expiresAt > new Date()) {
-      return decryptedAccessToken;
-    }
-
-    const decryptedRefreshToken = decrypt(stored.refreshToken);
-    const refreshed = await this.refreshTokens(decryptedRefreshToken);
-    await this.storeTokens(userId, refreshed);
-    return refreshed.access_token;
-  }
-
-  static async createAuthorizedService(userId: string): Promise<FathomService> {
-    const accessToken = await this.getValidAccessToken(userId);
-    return new FathomService(accessToken);
+  static async createAuthorizedService(userId: string): Promise<FathomAPIClient> {
+    const accessToken = await getValidFathomAccessToken(userId);
+    return new FathomAPIClient(accessToken);
   }
 }

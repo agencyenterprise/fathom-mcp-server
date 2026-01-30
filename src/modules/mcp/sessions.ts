@@ -9,7 +9,7 @@ import {
   STALE_TERMINATION_CUTOFF_MS,
 } from "../../shared/constants";
 import { ToolServer } from "../../tools/server";
-import { OAuthService } from "../oauth/service";
+import { cleanupExpiredOAuthData } from "../oauth/service";
 
 interface ActiveTransport {
   transport: StreamableHTTPServerTransport;
@@ -235,7 +235,7 @@ export class SessionManager {
         );
       }
 
-      const oauthCleanupResult = await OAuthService.cleanupExpiredOAuthData();
+      const oauthCleanupResult = await cleanupExpiredOAuthData();
       const totalOAuthCleaned =
         oauthCleanupResult.oauthStates +
         oauthCleanupResult.authorizationCodes +
