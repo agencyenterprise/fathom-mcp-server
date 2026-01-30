@@ -7,8 +7,8 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-export const oauthTokens = pgTable(
-  "oauth_tokens",
+export const fathomOAuthTokens = pgTable(
+  "fathom_oauth_tokens",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     userId: text("user_id").notNull().unique(),
@@ -18,7 +18,7 @@ export const oauthTokens = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
-  (table) => [index("oauth_tokens_expires_at_idx").on(table.expiresAt)],
+  (table) => [index("fathom_oauth_tokens_expires_at_idx").on(table.expiresAt)],
 );
 
 export const oauthStates = pgTable(
@@ -37,8 +37,8 @@ export const oauthStates = pgTable(
   (table) => [index("oauth_states_expires_at_idx").on(table.expiresAt)],
 );
 
-export const accessTokens = pgTable(
-  "access_tokens",
+export const serverAccessTokens = pgTable(
+  "server_access_tokens",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     token: text("token").notNull().unique(),
@@ -47,7 +47,7 @@ export const accessTokens = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     expiresAt: timestamp("expires_at").notNull(),
   },
-  (table) => [index("access_tokens_expires_at_idx").on(table.expiresAt)],
+  (table) => [index("server_access_tokens_expires_at_idx").on(table.expiresAt)],
 );
 
 export const authorizationCodes = pgTable(

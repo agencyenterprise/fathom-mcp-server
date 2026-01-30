@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import type { Request, Response } from "express";
-import { AppError } from "../../middleware/error";
+import { oauthError, validationError } from "../../shared/errors";
 import { FathomService } from "../fathom/service";
 import {
   authorizeReqSchema,
@@ -40,12 +40,11 @@ export async function handleAuthorize(req: Request, res: Response) {
 
   const client = await OAuthService.getClient(client_id);
   if (!client) {
-    throw new AppError(400, "invalid_client", "Unknown client_id");
+    throw oauthError("invalid_client", "Unknown client_id");
   }
 
   if (!client.redirectUris.includes(redirect_uri)) {
-    throw new AppError(
-      400,
+    throw oauthError(
       "invalid_redirect_uri",
       "redirect_uri not registered for this client",
     );
@@ -69,11 +68,7 @@ export async function handleFathomCallback(req: Request, res: Response) {
   const stateRecord = await OAuthService.getValidOAuthState(state);
 
   if (!stateRecord) {
-    throw new AppError(
-      400,
-      "invalid_state",
-      "Invalid or expired state parameter",
-    );
+    throw oauthError("invalid_state", "Invalid or expired state parameter");
   }
 
   const tokens = await FathomService.exchangeCodeForTokens(code);
@@ -104,8 +99,7 @@ export async function handleTokenExchange(req: Request, res: Response) {
   const codeRecord = await OAuthService.consumeAuthorizationCode(code);
 
   if (!codeRecord) {
-    throw new AppError(
-      400,
+    throw oauthError(
       "invalid_grant",
       "Invalid, expired, or already used authorization code",
     );
@@ -113,11 +107,7 @@ export async function handleTokenExchange(req: Request, res: Response) {
 
   if (codeRecord.claudeCodeChallenge && codeRecord.claudeCodeChallengeMethod) {
     if (!code_verifier) {
-      throw new AppError(
-        400,
-        "invalid_request",
-        "Missing code_verifier for PKCE",
-      );
+      throw validationError("Missing code_verifier for PKCE");
     }
 
     const isValid = OAuthService.verifyPKCE(
@@ -127,7 +117,7 @@ export async function handleTokenExchange(req: Request, res: Response) {
     );
 
     if (!isValid) {
-      throw new AppError(400, "invalid_grant", "Invalid code_verifier");
+      throw oauthError("invalid_grant", "Invalid code_verifier");
     }
   }
 

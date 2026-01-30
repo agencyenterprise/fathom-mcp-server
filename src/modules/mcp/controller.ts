@@ -1,6 +1,11 @@
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { Request, Response } from "express";
-import { AppError } from "../../middleware/error";
+import {
+  authError,
+  forbiddenError,
+  notFoundError,
+  sessionError,
+} from "../../shared/errors";
 import type { SessionManager } from "./sessions";
 
 function getSessionManager(req: Request): SessionManager {
@@ -21,7 +26,7 @@ export async function routeToSessionOrInitialize(req: Request, res: Response) {
 
   if (!sessionId && isInitializeRequest(req.body)) {
     if (!req.userId) {
-      throw new AppError(401, "unauthorized", "Unauthorized");
+      throw authError("unauthorized", "Unauthorized");
     }
 
     const transport = await sessionManager.createSession(req.userId);
@@ -29,7 +34,7 @@ export async function routeToSessionOrInitialize(req: Request, res: Response) {
     return;
   }
 
-  throw new AppError(400, "bad_request", "No valid session ID provided");
+  throw sessionError("bad_request", "No valid session ID provided");
 }
 
 export async function retrieveAuthenticatedSession(
@@ -40,20 +45,16 @@ export async function retrieveAuthenticatedSession(
   const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
   if (!sessionId) {
-    throw new AppError(400, "bad_request", "Missing session ID");
+    throw sessionError("bad_request", "Missing session ID");
   }
 
   const session = await sessionManager.retrieveSession(sessionId);
   if (!session) {
-    throw new AppError(404, "not_found", "Session not found or expired");
+    throw notFoundError("Session");
   }
 
   if (session.userId !== req.userId) {
-    throw new AppError(
-      403,
-      "forbidden",
-      "Session does not belong to this user",
-    );
+    throw forbiddenError("Session does not belong to this user");
   }
 
   await session.transport.handleRequest(req, res);
@@ -67,20 +68,16 @@ export async function terminateAuthenticatedSession(
   const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
   if (!sessionId) {
-    throw new AppError(400, "bad_request", "Missing session ID");
+    throw sessionError("bad_request", "Missing session ID");
   }
 
   const session = await sessionManager.retrieveSession(sessionId);
   if (!session) {
-    throw new AppError(404, "not_found", "Session not found or expired");
+    throw notFoundError("Session");
   }
 
   if (session.userId !== req.userId) {
-    throw new AppError(
-      403,
-      "forbidden",
-      "Session does not belong to this user",
-    );
+    throw forbiddenError("Session does not belong to this user");
   }
 
   await sessionManager.terminateSession(sessionId);

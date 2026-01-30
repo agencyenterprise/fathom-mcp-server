@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
-import { db, oauthTokens } from "../../db";
+import { db, fathomOAuthTokens } from "../../db";
+import { logger } from "../../middleware/logger";
 import { config } from "../../shared/config";
 import {
   BEARER_PREFIX,
@@ -9,6 +10,7 @@ import {
   OAUTH_GRANT_TYPE_REFRESH,
   OAUTH_RESPONSE_TYPE_CODE,
 } from "../../shared/constants";
+import { authError, fathomApiError } from "../../shared/errors";
 import type { ListMeetingsReqType } from "../../shared/schemas";
 import { decrypt, encrypt } from "../../utils/crypto";
 import {
@@ -51,13 +53,20 @@ export class FathomService {
 
       if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(`Fathom API error ${response.status}: ${errorBody}`);
+        logger.error(
+          { endpoint, status: response.status, errorBody },
+          "Fathom API error",
+        );
+        throw fathomApiError(
+          `Fathom API returned error ${response.status}`,
+          `fathom_api_${response.status}`,
+        );
       }
 
       return response.json();
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
-        throw new Error("Fathom API request timed out");
+        throw fathomApiError("Fathom API request timed out");
       }
       throw error;
     } finally {
@@ -161,7 +170,11 @@ export class FathomService {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new Error(`Token exchange failed: ${errorBody}`);
+      logger.error(
+        { status: response.status, errorBody },
+        "Fathom token exchange failed",
+      );
+      throw fathomApiError("Failed to exchange authorization code");
     }
 
     const data = await response.json();
@@ -186,9 +199,8 @@ export class FathomService {
     );
 
     if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(
-        `Fathom session expired or was revoked. Please reconnect: go to Claude Settings > Connectors > Fathom MCP > Remove, then reconnect. (Details: ${errorBody})`,
+      throw fathomApiError(
+        "Fathom session expired or was revoked. Please reconnect via Claude Settings > Connectors.",
       );
     }
 
@@ -205,7 +217,7 @@ export class FathomService {
     const encryptedRefreshToken = encrypt(tokens.refresh_token);
 
     await db
-      .insert(oauthTokens)
+      .insert(fathomOAuthTokens)
       .values({
         userId,
         accessToken: encryptedAccessToken,
@@ -213,7 +225,7 @@ export class FathomService {
         expiresAt,
       })
       .onConflictDoUpdate({
-        target: oauthTokens.userId,
+        target: fathomOAuthTokens.userId,
         set: {
           accessToken: encryptedAccessToken,
           refreshToken: encryptedRefreshToken,
@@ -226,8 +238,8 @@ export class FathomService {
   static async getStoredTokens(userId: string) {
     const result = await db
       .select()
-      .from(oauthTokens)
-      .where(eq(oauthTokens.userId, userId))
+      .from(fathomOAuthTokens)
+      .where(eq(fathomOAuthTokens.userId, userId))
       .limit(1);
 
     return result[0] ?? null;
@@ -237,8 +249,9 @@ export class FathomService {
     const stored = await this.getStoredTokens(userId);
 
     if (!stored) {
-      throw new Error(
-        "No Fathom account connected. Please connect: go to Claude Settings > Connectors > Add Custom Connector and authenticate with Fathom.",
+      throw authError(
+        "no_fathom_account",
+        "No Fathom account connected. Please connect via Claude Settings > Connectors.",
       );
     }
 

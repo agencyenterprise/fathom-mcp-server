@@ -5,6 +5,7 @@ import type {
   ServerRequest,
 } from "@modelcontextprotocol/sdk/types.js";
 import { config } from "../shared/config";
+import { sessionError } from "../shared/errors";
 import {
   listMeetingsReqSchema,
   listTeamMembersReqSchema,
@@ -132,12 +133,12 @@ export class ToolServer {
 
   private getUserId(extra: ToolRequestExtra): string {
     if (!extra.sessionId) {
-      throw new Error("No session ID provided in tool context");
+      throw sessionError("missing_session", "No session ID provided in tool context");
     }
 
     const session = this.getActiveTransportFn(extra.sessionId);
     if (!session) {
-      throw new Error(`Session not found: ${extra.sessionId}`);
+      throw sessionError("session_not_found", "Session not found");
     }
 
     return session.userId;

@@ -13,6 +13,7 @@ import {
   wellKnownRouter,
 } from "./routes";
 import { config } from "./shared/config";
+import { GRACEFUL_SHUTDOWN_TIMEOUT_MS } from "./shared/constants";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -80,7 +81,7 @@ async function shutdown(signal: string) {
   setTimeout(() => {
     logger.error("Forced shutdown after timeout");
     process.exit(1);
-  }, 10000);
+  }, GRACEFUL_SHUTDOWN_TIMEOUT_MS);
 }
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));

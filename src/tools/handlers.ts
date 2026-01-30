@@ -1,7 +1,9 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { ZodError } from "zod";
 import { logger } from "../middleware/logger";
 import { FathomService } from "../modules/fathom/service";
 import { DEFAULT_MEETINGS_LIMIT, SEARCH_POOL_SIZE } from "../shared/constants";
+import { ErrorLogger } from "../shared/errors";
 import {
   listMeetingsReqSchema,
   listTeamMembersReqSchema,
@@ -9,6 +11,16 @@ import {
   recordingReqSchema,
   searchMeetingsReqSchema,
 } from "../shared/schemas";
+
+function formatToolError(error: unknown): string {
+  if (error instanceof ErrorLogger) {
+    return error.message;
+  }
+  if (error instanceof ZodError) {
+    return error.errors[0]?.message || "Invalid parameters";
+  }
+  return "An unexpected error occurred";
+}
 
 export async function listMeetings(
   userId: string,
@@ -27,7 +39,7 @@ export async function listMeetings(
   } catch (error) {
     logger.error({ tool: "list_meetings", error, userId }, "Tool error");
     return {
-      content: [{ type: "text", text: (error as Error).message }],
+      content: [{ type: "text", text: formatToolError(error) }],
       isError: true,
     };
   }
@@ -47,7 +59,7 @@ export async function getTranscript(
   } catch (error) {
     logger.error({ tool: "get_transcript", error, userId }, "Tool error");
     return {
-      content: [{ type: "text", text: (error as Error).message }],
+      content: [{ type: "text", text: formatToolError(error) }],
       isError: true,
     };
   }
@@ -67,7 +79,7 @@ export async function getSummary(
   } catch (error) {
     logger.error({ tool: "get_summary", error, userId }, "Tool error");
     return {
-      content: [{ type: "text", text: (error as Error).message }],
+      content: [{ type: "text", text: formatToolError(error) }],
       isError: true,
     };
   }
@@ -87,7 +99,7 @@ export async function listTeams(
   } catch (error) {
     logger.error({ tool: "list_teams", error, userId }, "Tool error");
     return {
-      content: [{ type: "text", text: (error as Error).message }],
+      content: [{ type: "text", text: formatToolError(error) }],
       isError: true,
     };
   }
@@ -107,7 +119,7 @@ export async function listTeamMembers(
   } catch (error) {
     logger.error({ tool: "list_team_members", error, userId }, "Tool error");
     return {
-      content: [{ type: "text", text: (error as Error).message }],
+      content: [{ type: "text", text: formatToolError(error) }],
       isError: true,
     };
   }
@@ -150,7 +162,7 @@ export async function searchMeetings(
   } catch (error) {
     logger.error({ tool: "search_meetings", error, userId }, "Tool error");
     return {
-      content: [{ type: "text", text: (error as Error).message }],
+      content: [{ type: "text", text: formatToolError(error) }],
       isError: true,
     };
   }

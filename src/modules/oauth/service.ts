@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "crypto";
 import { and, eq, gt, isNotNull, isNull, lt, or } from "drizzle-orm";
 import {
-  accessTokens,
+  serverAccessTokens,
   authorizationCodes,
   db,
   oauthClients,
@@ -140,7 +140,7 @@ export class OAuthService {
     const token = randomUUID();
     const expiresAt = new Date(Date.now() + ACCESS_TOKEN_TTL_MS);
 
-    await db.insert(accessTokens).values({
+    await db.insert(serverAccessTokens).values({
       token,
       userId,
       scope,
@@ -153,11 +153,11 @@ export class OAuthService {
   static async getAccessToken(token: string) {
     const result = await db
       .select()
-      .from(accessTokens)
+      .from(serverAccessTokens)
       .where(
         and(
-          eq(accessTokens.token, token),
-          gt(accessTokens.expiresAt, new Date()),
+          eq(serverAccessTokens.token, token),
+          gt(serverAccessTokens.expiresAt, new Date()),
         ),
       )
       .limit(1);
@@ -208,7 +208,9 @@ export class OAuthService {
           ),
         ),
 
-      db.delete(accessTokens).where(lt(accessTokens.expiresAt, now)),
+      db
+        .delete(serverAccessTokens)
+        .where(lt(serverAccessTokens.expiresAt, now)),
     ]);
 
     return {

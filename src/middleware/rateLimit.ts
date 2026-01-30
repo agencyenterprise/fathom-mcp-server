@@ -16,3 +16,15 @@ export const userRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+export const oauthRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => ipKeyGenerator(req.ip ?? "unknown"),
+  message: {
+    error: "rate_limit_exceeded",
+    error_description: "Too many authentication attempts. Try again later.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});

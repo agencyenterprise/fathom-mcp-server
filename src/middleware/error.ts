@@ -1,18 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
+import { ErrorLogger } from "../shared/errors";
 import { logger } from "./logger";
-
-// todo moved to /shared directory
-export class AppError extends Error {
-  constructor(
-    public statusCode: number,
-    public code: string,
-    message: string,
-  ) {
-    super(message);
-    this.name = "AppError";
-  }
-}
 
 export function errorHandler(
   err: Error,
@@ -20,9 +9,18 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ) {
-  logger.error({ err }, "Request error");
+  if (err instanceof ErrorLogger) {
+    logger.error(
+      {
+        errorType: err.errorType,
+        errorName: err.errorName,
+        code: err.code,
+        message: err.message,
+        stack: err.stack,
+      },
+      "Request error",
+    );
 
-  if (err instanceof AppError) {
     res.status(err.statusCode).json({
       error: err.code,
       error_description: err.message,
@@ -31,6 +29,11 @@ export function errorHandler(
   }
 
   if (err instanceof ZodError) {
+    logger.error(
+      { errorType: "validation", errors: err.errors },
+      "Validation error",
+    );
+
     res.status(400).json({
       error: "invalid_request",
       error_description: err.errors[0]?.message || "Invalid parameters",
@@ -38,9 +41,14 @@ export function errorHandler(
     return;
   }
 
+  logger.error(
+    { errorType: "unexpected", message: err.message, stack: err.stack },
+    "Unexpected error",
+  );
+
   res.status(500).json({
     error: "server_error",
-    error_description: err.message || "Internal server error",
+    error_description: "An unexpected error occurred",
   });
 }
 

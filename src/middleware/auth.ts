@@ -15,9 +15,10 @@ declare global {
 
 const WWW_AUTHENTICATE_VALUE = `Bearer resource_metadata="${config.baseUrl}/.well-known/oauth-protected-resource"`;
 
-function sendUnauthorized(res: Response, error: string, description: string) {
+function sendUnauthorized(res: Response, code: string, message: string) {
+  logger.error({ errorType: "auth", code, message }, "Authentication failed");
   res.setHeader("WWW-Authenticate", WWW_AUTHENTICATE_VALUE);
-  res.status(401).json({ error, error_description: description });
+  res.status(401).json({ error: code, error_description: message });
 }
 
 export async function bearerAuthMiddleware(
@@ -28,7 +29,6 @@ export async function bearerAuthMiddleware(
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith(BEARER_PREFIX)) {
-    logger.debug("Missing bearer token");
     sendUnauthorized(
       res,
       "unauthorized",
@@ -50,10 +50,13 @@ export async function bearerAuthMiddleware(
     req.userId = tokenRecord.userId;
     next();
   } catch (error) {
-    logger.error({ error }, "Auth middleware error");
+    logger.error(
+      { errorType: "server", error },
+      "Auth middleware unexpected error",
+    );
     res.status(500).json({
       error: "server_error",
-      error_description: "Failed to validate token",
+      error_description: "An unexpected error occurred",
     });
   }
 }
