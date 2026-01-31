@@ -1,11 +1,6 @@
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { Request, Response } from "express";
-import {
-  authError,
-  forbiddenError,
-  notFoundError,
-  sessionError,
-} from "../../shared/errors";
+import { ErrorLogger } from "../../shared/errors";
 import type { SessionManager } from "./manager";
 
 function getSessionManager(req: Request): SessionManager {
@@ -20,11 +15,11 @@ export async function routeToSessionOrInitialize(req: Request, res: Response) {
     const session = await sessionManager.retrieveSession(sessionId);
 
     if (!session) {
-      throw notFoundError("Session");
+      throw ErrorLogger.notFound("Session");
     }
 
     if (session.userId !== req.userId) {
-      throw forbiddenError("Session does not belong to this user");
+      throw ErrorLogger.forbidden("Session does not belong to this user");
     }
 
     await session.transport.handleRequest(req, res, req.body);
@@ -33,7 +28,7 @@ export async function routeToSessionOrInitialize(req: Request, res: Response) {
 
   if (isInitializeRequest(req.body)) {
     if (!req.userId) {
-      throw authError("unauthorized", "Unauthorized");
+      throw ErrorLogger.auth("unauthorized", "Unauthorized");
     }
 
     const transport = await sessionManager.createSession(req.userId);
@@ -41,7 +36,7 @@ export async function routeToSessionOrInitialize(req: Request, res: Response) {
     return;
   }
 
-  throw sessionError(
+  throw ErrorLogger.session(
     "bad_request",
     "Missing session ID for non-initialize request",
   );
@@ -55,16 +50,16 @@ export async function retrieveAuthenticatedSession(
   const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
   if (!sessionId) {
-    throw sessionError("bad_request", "Missing session ID");
+    throw ErrorLogger.session("bad_request", "Missing session ID");
   }
 
   const session = await sessionManager.retrieveSession(sessionId);
   if (!session) {
-    throw notFoundError("Session");
+    throw ErrorLogger.notFound("Session");
   }
 
   if (session.userId !== req.userId) {
-    throw forbiddenError("Session does not belong to this user");
+    throw ErrorLogger.forbidden("Session does not belong to this user");
   }
 
   await session.transport.handleRequest(req, res);
@@ -78,16 +73,16 @@ export async function terminateAuthenticatedSession(
   const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
   if (!sessionId) {
-    throw sessionError("bad_request", "Missing session ID");
+    throw ErrorLogger.session("bad_request", "Missing session ID");
   }
 
   const session = await sessionManager.retrieveSession(sessionId);
   if (!session) {
-    throw notFoundError("Session");
+    throw ErrorLogger.notFound("Session");
   }
 
   if (session.userId !== req.userId) {
-    throw forbiddenError("Session does not belong to this user");
+    throw ErrorLogger.forbidden("Session does not belong to this user");
   }
 
   await sessionManager.terminateSession(sessionId);
