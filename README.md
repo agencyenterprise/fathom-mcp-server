@@ -21,14 +21,14 @@ https://www.fathom-mcp-server.com/mcp
 
 ## Available Tools
 
-| Tool                | Description                                             |
-| ------------------- | ------------------------------------------------------- |
-| `list_meetings`     | List meetings with filters (date, team, recorder, etc.) |
-| `search_meetings`   | Search meetings by title with optional filters          |
-| `get_transcript`    | Get full transcript for a recording                     |
-| `get_summary`       | Get AI-generated summary for a recording                |
-| `list_teams`        | List all accessible teams                               |
-| `list_team_members` | List members of a team                                  |
+| Tool                | Description                                             | Source     |
+| ------------------- | ------------------------------------------------------- | ---------- |
+| `list_meetings`     | List meetings with filters (date, team, recorder, etc.) | Fathom API |
+| `search_meetings`   | Search meetings by title with optional filters          | MCP        |
+| `get_transcript`    | Get full transcript for a recording                     | Fathom API |
+| `get_summary`       | Get AI-generated summary for a recording                | Fathom API |
+| `list_teams`        | List all accessible teams                               | Fathom API |
+| `list_team_members` | List members of a team                                  | Fathom API |
 
 <!-- TODO: Add link to zod-openapi generated documentation -->
 
@@ -39,6 +39,20 @@ https://www.fathom-mcp-server.com/mcp
 > "Get the transcript from my standup yesterday"
 
 > "Summarize my meeting with the design team"
+
+## Security
+
+**Your Fathom data is never stored or exposed by this server.**
+
+| Data                             | Stored? | Exposed? | Details                                                  |
+| -------------------------------- | ------- | -------- | -------------------------------------------------------- |
+| Meetings, transcripts, summaries | No      | No       | Fetched from Fathom and passed directly to Claude        |
+| Team and member info             | No      | No       | Fetched from Fathom and passed directly to Claude        |
+| OAuth tokens                     | Yes     | No       | Encrypted at rest (AES-256-GCM), never logged or exposed |
+
+- **Pass-through architecture**: This server acts as a secure proxy — your Fathom data flows directly from Fathom to Claude without being stored, cached, or logged
+- **Encryption at rest**: The only stored data (OAuth tokens) is encrypted using AES-256-GCM before being written to the database
+- **HTTPS only**: All communication between Claude, this server, and Fathom is encrypted in transit
 
 ## Permissions
 
