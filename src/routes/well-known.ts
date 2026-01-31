@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { config } from "../shared/config";
 import {
-  DEFAULT_SCOPE,
+  MCP_SERVER_DEFAULT_SCOPE,
   OAUTH_GRANT_TYPE_AUTH_CODE,
   OAUTH_RESPONSE_TYPE_CODE,
 } from "../shared/constants";
@@ -13,7 +13,7 @@ router.get("/oauth-protected-resource", (_req, res) => {
     resource: `${config.baseUrl}/mcp`,
     authorization_servers: [config.baseUrl],
     bearer_methods_supported: ["header"],
-    scopes_supported: [DEFAULT_SCOPE],
+    scopes_supported: [MCP_SERVER_DEFAULT_SCOPE],
   });
 });
 
@@ -27,7 +27,7 @@ router.get("/oauth-authorization-server", (_req, res) => {
     grant_types_supported: [OAUTH_GRANT_TYPE_AUTH_CODE],
     token_endpoint_auth_methods_supported: ["none"],
     code_challenge_methods_supported: ["S256", "plain"],
-    scopes_supported: [DEFAULT_SCOPE],
+    scopes_supported: [MCP_SERVER_DEFAULT_SCOPE],
   });
 });
 

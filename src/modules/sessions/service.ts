@@ -2,7 +2,7 @@ import { and, eq, inArray, isNotNull, lt, or } from "drizzle-orm";
 import { db, mcpSessions } from "../../db";
 import {
   SESSION_TTL_MS,
-  STALE_TERMINATION_CUTOFF_MS,
+  STALE_SESSION_CUTOFF_MS,
 } from "../../shared/constants";
 
 export async function insertSession(
@@ -31,7 +31,7 @@ export async function markSessionTerminated(sessionId: string): Promise<void> {
 export async function findExpiredSessionIds(): Promise<string[]> {
   const now = new Date();
   const staleTerminationCutoff = new Date(
-    now.getTime() - STALE_TERMINATION_CUTOFF_MS,
+    now.getTime() - STALE_SESSION_CUTOFF_MS,
   );
 
   const expiredCondition = or(

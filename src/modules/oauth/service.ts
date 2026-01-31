@@ -9,11 +9,11 @@ import {
   mcpServerOAuthStates,
 } from "../../db";
 import {
-  ACCESS_TOKEN_TTL_MS,
-  AUTH_CODE_TTL_MS,
-  DEFAULT_SCOPE,
-  OAUTH_STATE_TTL_MS,
-  STALE_TERMINATION_CUTOFF_MS,
+  MCP_SERVER_ACCESS_TOKEN_TTL_MS,
+  MCP_SERVER_AUTH_CODE_TTL_MS,
+  MCP_SERVER_DEFAULT_SCOPE,
+  MCP_SERVER_OAUTH_STATE_TTL_MS,
+  STALE_SESSION_CUTOFF_MS,
 } from "../../shared/constants";
 import { encrypt } from "../../utils/crypto";
 import type { FathomTokenResType } from "./schema";
@@ -49,7 +49,7 @@ export async function createMcpServerOAuthState(
   codeChallengeMethod?: string,
 ): Promise<string> {
   const mcpServerOAuthState = randomUUID();
-  const expiresAt = new Date(Date.now() + OAUTH_STATE_TTL_MS);
+  const expiresAt = new Date(Date.now() + MCP_SERVER_OAUTH_STATE_TTL_MS);
 
   await db.insert(mcpServerOAuthStates).values({
     state: mcpServerOAuthState,
@@ -91,10 +91,10 @@ export async function createMcpServerAuthorizationCode(
   clientRedirectUri: string,
   clientCodeChallenge: string | null,
   clientCodeChallengeMethod: string | null,
-  scope: string = DEFAULT_SCOPE,
+  scope: string = MCP_SERVER_DEFAULT_SCOPE,
 ): Promise<string> {
   const code = randomUUID();
-  const expiresAt = new Date(Date.now() + AUTH_CODE_TTL_MS);
+  const expiresAt = new Date(Date.now() + MCP_SERVER_AUTH_CODE_TTL_MS);
 
   await db.insert(mcpServerAuthorizationCodes).values({
     code,
@@ -141,7 +141,7 @@ export async function createMcpServerAccessToken(
   scope: string,
 ): Promise<string> {
   const token = randomUUID();
-  const expiresAt = new Date(Date.now() + ACCESS_TOKEN_TTL_MS);
+  const expiresAt = new Date(Date.now() + MCP_SERVER_ACCESS_TOKEN_TTL_MS);
 
   await db.insert(mcpServerAccessTokens).values({
     token,
@@ -226,7 +226,7 @@ export async function cleanupExpiredMcpServerOAuthData(): Promise<{
 }> {
   const now = new Date();
   const staleUsedCodesCutoff = new Date(
-    now.getTime() - STALE_TERMINATION_CUTOFF_MS,
+    now.getTime() - STALE_SESSION_CUTOFF_MS,
   );
 
   const [statesResult, codesResult, tokensResult] = await Promise.all([
