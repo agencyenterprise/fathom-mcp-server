@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "crypto";
 import { and, eq, gt, isNotNull, isNull, lt, or } from "drizzle-orm";
 import {
   db,
+  fathomOAuthTokens,
   mcpServerAccessTokens,
   mcpServerAuthorizationCodes,
   mcpServerOAuthClients,
@@ -14,6 +15,8 @@ import {
   OAUTH_STATE_TTL_MS,
   STALE_TERMINATION_CUTOFF_MS,
 } from "../../shared/constants";
+import { encrypt } from "../../utils/crypto";
+import type { FathomTokenResType } from "./schema";
 
 export async function insertMcpServerOAuthClient(
   redirectUris: string[],
@@ -163,6 +166,43 @@ export async function getMcpServerAccessToken(token: string) {
     .limit(1);
 
   return accessTokenRecords[0] ?? null;
+}
+
+export async function insertFathomToken(
+  userId: string,
+  token: FathomTokenResType,
+): Promise<void> {
+  const expiresAt = new Date(Date.now() + token.expires_in * 1000);
+  const encryptedAccessToken = encrypt(token.access_token);
+  const encryptedRefreshToken = encrypt(token.refresh_token);
+
+  await db
+    .insert(fathomOAuthTokens)
+    .values({
+      userId,
+      accessToken: encryptedAccessToken,
+      refreshToken: encryptedRefreshToken,
+      expiresAt,
+    })
+    .onConflictDoUpdate({
+      target: fathomOAuthTokens.userId,
+      set: {
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
+        expiresAt,
+        updatedAt: new Date(),
+      },
+    });
+}
+
+export async function getFathomOAuthToken(userId: string) {
+  const result = await db
+    .select()
+    .from(fathomOAuthTokens)
+    .where(eq(fathomOAuthTokens.userId, userId))
+    .limit(1);
+
+  return result[0] ?? null;
 }
 
 export function verifyMcpServerPKCE(

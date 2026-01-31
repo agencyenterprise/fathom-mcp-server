@@ -1,9 +1,9 @@
 import { logger } from "../../middleware/logger";
 import { config } from "../../shared/config";
 import { BEARER_PREFIX, FATHOM_API_TIMEOUT_MS } from "../../shared/constants";
-import { fathomApiError } from "../../shared/errors";
+import { authError, fathomApiError } from "../../shared/errors";
 import type { ListMeetingsReqType } from "../../shared/schemas";
-import { getFathomAccessToken } from "./oauth";
+import { fetchFathomOAuthToken } from "../oauth/controller";
 import {
   listMeetingsResSchema,
   listTeamMembersResSchema,
@@ -17,11 +17,6 @@ import {
   type TranscriptResType,
 } from "./schema";
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Fathom API client.
-// Makes authenticated API calls to Fathom's REST API.
-// OAuth operations live in oauth/fathom.ts (FathomOAuthService).
-// ═══════════════════════════════════════════════════════════════════════════
 export class FathomAPIClient {
   private accessToken: string;
 
@@ -136,7 +131,15 @@ export class FathomAPIClient {
   static async createAuthorizedService(
     userId: string,
   ): Promise<FathomAPIClient> {
-    const accessToken = await getFathomAccessToken(userId);
+    const accessToken = await fetchFathomOAuthToken(userId);
+
+    if (!accessToken) {
+      throw authError(
+        "no_fathom_account",
+        "No Fathom account connected. Please connect via Claude Settings > Connectors.",
+      );
+    }
+
     return new FathomAPIClient(accessToken);
   }
 }

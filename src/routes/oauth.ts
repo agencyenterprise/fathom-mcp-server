@@ -6,7 +6,7 @@ import {
   completeFathomAuthAndRedirectClient,
   exchangeCodeForMcpAccessToken,
   registerMcpServerOAuthClient,
-} from "../modules/mcp/controller";
+} from "../modules/oauth/controller";
 
 const router = Router();
 

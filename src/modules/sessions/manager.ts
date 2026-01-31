@@ -4,7 +4,7 @@ import { logger } from "../../middleware/logger";
 import { SESSION_CLEANUP_INTERVAL_MS } from "../../shared/constants";
 import { serverError } from "../../shared/errors";
 import { ToolServer } from "../../tools/server";
-import { cleanupExpiredMcpServerOAuthData } from "../mcp/oauth";
+import { cleanupExpiredMcpServerOAuthData } from "../oauth/service";
 import {
   deleteSessionsByIds,
   findExpiredSessionIds,
