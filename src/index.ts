@@ -25,9 +25,10 @@ const publicPath =
     : path.join(__dirname, "..", "public");
 
 const app = express();
-const sessionManager = new SessionManager();
 
+const sessionManager = new SessionManager();
 app.locals.sessionManager = sessionManager;
+sessionManager.startCleanupScheduler();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -65,8 +66,6 @@ const server = app.listen(config.port, () => {
     "Fathom MCP server started",
   );
 });
-
-sessionManager.startCleanupScheduler();
 
 async function shutdown(signal: string) {
   logger.info({ signal }, "Shutdown signal received, closing server");

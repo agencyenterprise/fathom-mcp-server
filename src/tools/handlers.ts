@@ -126,14 +126,13 @@ export async function searchMeetings(
   try {
     const input = searchMeetingsReqSchema.parse(args);
     const service = await FathomAPIClient.createAuthorizedService(userId);
-
-    const meetings = await service.listMeetings({
+    const data = await service.listMeetings({
       ...input,
       limit: SEARCH_POOL_SIZE,
     });
 
     const query = input.query.toLowerCase();
-    const filtered = meetings.items.filter(
+    const filtered = data.items.filter(
       (m) =>
         m.title.toLowerCase().includes(query) ||
         m.meeting_title?.toLowerCase().includes(query),
