@@ -51,15 +51,3 @@ export function errorHandler(
     error_description: "An unexpected error occurred",
   });
 }
-
-type AsyncHandler = (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => Promise<void>;
-
-export function asyncHandler(fn: AsyncHandler) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    fn(req, res, next).catch(next);
-  };
-}

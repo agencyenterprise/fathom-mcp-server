@@ -276,5 +276,5 @@ function buildMcpServerOAuthRedirectUrl(
   );
   mcpServerOAuthRedirectUrl.searchParams.set("state", clientState);
 
-  return `/oauth-success.html?redirect=${encodeURIComponent(mcpServerOAuthRedirectUrl.toString())}`;
+  return `/oauth/success?redirect=${encodeURIComponent(mcpServerOAuthRedirectUrl.toString())}`;
 }
