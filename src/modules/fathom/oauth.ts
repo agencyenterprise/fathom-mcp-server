@@ -9,9 +9,9 @@ import {
 } from "../../shared/constants";
 import { authError, fathomApiError } from "../../shared/errors";
 import { decrypt, encrypt } from "../../utils/crypto";
-import { fathomTokenResSchema, type FathomTokenResType } from "./schema";
+import { fathomTokenResSchema, type FathomTokenResType } from "../mcp/schema";
 
-export function getFathomAuthUrl(state: string): string {
+export function buildFathomOAuthAuthorizationUrl(state: string): string {
   const params = new URLSearchParams({
     client_id: config.fathom.clientId,
     redirect_uri: config.fathom.redirectUrl,
@@ -19,26 +19,24 @@ export function getFathomAuthUrl(state: string): string {
     scope: FATHOM_API_SCOPE,
     state,
   });
-  return `${config.fathom.authUrl}/external/v1/oauth2/authorize?${params}`;
+  return `${config.fathom.oauthBaseUrl}/external/v1/oauth2/authorize?${params}`;
 }
 
-export async function exchangeCodeForFathomTokens(
+export async function exchangeCodeForFathomToken(
   code: string,
 ): Promise<FathomTokenResType> {
-  const response = await fetch(
-    `${config.fathom.authUrl}/external/v1/oauth2/token`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: OAUTH_GRANT_TYPE_AUTH_CODE,
-        code,
-        client_id: config.fathom.clientId,
-        client_secret: config.fathom.clientSecret,
-        redirect_uri: config.fathom.redirectUrl,
-      }),
-    },
-  );
+  const oauthUrl = `${config.fathom.oauthBaseUrl}/external/v1/oauth2/token`;
+  const response = await fetch(oauthUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: OAUTH_GRANT_TYPE_AUTH_CODE,
+      code,
+      client_id: config.fathom.clientId,
+      client_secret: config.fathom.clientSecret,
+      redirect_uri: config.fathom.redirectUrl,
+    }),
+  });
 
   if (!response.ok) {
     throw fathomApiError("Failed to exchange authorization code");
@@ -51,19 +49,17 @@ export async function exchangeCodeForFathomTokens(
 export async function refreshFathomTokens(
   refreshToken: string,
 ): Promise<FathomTokenResType> {
-  const response = await fetch(
-    `${config.fathom.authUrl}/external/v1/oauth2/token`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: OAUTH_GRANT_TYPE_REFRESH,
-        refresh_token: refreshToken,
-        client_id: config.fathom.clientId,
-        client_secret: config.fathom.clientSecret,
-      }),
-    },
-  );
+  const oauthUrl = `${config.fathom.oauthBaseUrl}/external/v1/oauth2/token`;
+  const response = await fetch(oauthUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: OAUTH_GRANT_TYPE_REFRESH,
+      refresh_token: refreshToken,
+      client_id: config.fathom.clientId,
+      client_secret: config.fathom.clientSecret,
+    }),
+  });
 
   if (!response.ok) {
     throw fathomApiError(
@@ -75,7 +71,7 @@ export async function refreshFathomTokens(
   return fathomTokenResSchema.parse(data);
 }
 
-export async function storeFathomTokens(
+export async function insertFathomToken(
   userId: string,
   tokens: FathomTokenResType,
 ): Promise<void> {
@@ -102,9 +98,7 @@ export async function storeFathomTokens(
     });
 }
 
-export async function getValidFathomAccessToken(
-  userId: string,
-): Promise<string> {
+export async function getFathomAccessToken(userId: string): Promise<string> {
   const result = await db
     .select()
     .from(fathomOAuthTokens)
@@ -128,6 +122,6 @@ export async function getValidFathomAccessToken(
 
   const decryptedRefreshToken = decrypt(stored.refreshToken);
   const refreshed = await refreshFathomTokens(decryptedRefreshToken);
-  await storeFathomTokens(userId, refreshed);
+  await insertFathomToken(userId, refreshed);
   return refreshed.access_token;
 }

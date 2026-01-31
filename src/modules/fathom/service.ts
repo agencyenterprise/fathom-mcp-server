@@ -3,7 +3,7 @@ import { config } from "../../shared/config";
 import { BEARER_PREFIX, FATHOM_API_TIMEOUT_MS } from "../../shared/constants";
 import { fathomApiError } from "../../shared/errors";
 import type { ListMeetingsReqType } from "../../shared/schemas";
-import { getValidFathomAccessToken } from "../oauth/fathom";
+import { getFathomAccessToken } from "./oauth";
 import {
   listMeetingsResSchema,
   listTeamMembersResSchema,
@@ -37,7 +37,7 @@ export class FathomAPIClient {
     );
 
     try {
-      const response = await fetch(`${config.fathom.apiUrl}${endpoint}`, {
+      const response = await fetch(`${config.fathom.apiBaseUrl}${endpoint}`, {
         headers: {
           Authorization: `${BEARER_PREFIX}${this.accessToken}`,
           "Content-Type": "application/json",
@@ -133,8 +133,10 @@ export class FathomAPIClient {
     return listTeamMembersResSchema.parse(data);
   }
 
-  static async createAuthorizedService(userId: string): Promise<FathomAPIClient> {
-    const accessToken = await getValidFathomAccessToken(userId);
+  static async createAuthorizedService(
+    userId: string,
+  ): Promise<FathomAPIClient> {
+    const accessToken = await getFathomAccessToken(userId);
     return new FathomAPIClient(accessToken);
   }
 }

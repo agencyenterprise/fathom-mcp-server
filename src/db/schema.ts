@@ -21,24 +21,26 @@ export const fathomOAuthTokens = pgTable(
   (table) => [index("fathom_oauth_tokens_expires_at_idx").on(table.expiresAt)],
 );
 
-export const oauthStates = pgTable(
-  "oauth_states",
+export const mcpServerOAuthStates = pgTable(
+  "mcp_server_oauth_states",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     state: text("state").notNull().unique(),
     clientId: text("client_id").notNull(),
-    claudeRedirectUri: text("claude_redirect_uri").notNull(),
-    claudeState: text("claude_state").notNull(),
-    claudeCodeChallenge: text("claude_code_challenge"),
-    claudeCodeChallengeMethod: text("claude_code_challenge_method"),
+    clientRedirectUri: text("client_redirect_uri").notNull(),
+    clientState: text("client_state").notNull(),
+    clientCodeChallenge: text("client_code_challenge"),
+    clientCodeChallengeMethod: text("client_code_challenge_method"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     expiresAt: timestamp("expires_at").notNull(),
   },
-  (table) => [index("oauth_states_expires_at_idx").on(table.expiresAt)],
+  (table) => [
+    index("mcp_server_oauth_states_expires_at_idx").on(table.expiresAt),
+  ],
 );
 
-export const serverAccessTokens = pgTable(
-  "server_access_tokens",
+export const mcpServerAccessTokens = pgTable(
+  "mcp_server_access_tokens",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     token: text("token").notNull().unique(),
@@ -47,28 +49,32 @@ export const serverAccessTokens = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
     expiresAt: timestamp("expires_at").notNull(),
   },
-  (table) => [index("server_access_tokens_expires_at_idx").on(table.expiresAt)],
+  (table) => [
+    index("mcp_server_access_tokens_expires_at_idx").on(table.expiresAt),
+  ],
 );
 
-export const authorizationCodes = pgTable(
-  "authorization_codes",
+export const mcpServerAuthorizationCodes = pgTable(
+  "mcp_server_authorization_codes",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     code: text("code").notNull().unique(),
     userId: text("user_id").notNull(),
     clientId: text("client_id").notNull(),
-    claudeRedirectUri: text("claude_redirect_uri").notNull(),
-    claudeCodeChallenge: text("claude_code_challenge"),
-    claudeCodeChallengeMethod: text("claude_code_challenge_method"),
+    clientRedirectUri: text("client_redirect_uri").notNull(),
+    clientCodeChallenge: text("client_code_challenge"),
+    clientCodeChallengeMethod: text("client_code_challenge_method"),
     scope: text("scope").notNull().default("fathom:read"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     expiresAt: timestamp("expires_at").notNull(),
     used: timestamp("used"),
   },
-  (table) => [index("authorization_codes_expires_at_idx").on(table.expiresAt)],
+  (table) => [
+    index("mcp_server_authorization_codes_expires_at_idx").on(table.expiresAt),
+  ],
 );
 
-export const oauthClients = pgTable("oauth_clients", {
+export const mcpServerOAuthClients = pgTable("mcp_server_oauth_clients", {
   id: uuid("id").primaryKey().defaultRandom(),
   clientId: text("client_id").notNull().unique(),
   clientSecret: text("client_secret"),
@@ -83,7 +89,6 @@ export const mcpSessions = pgTable(
     sessionId: uuid("session_id").primaryKey(),
     userId: text("user_id").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
-    lastAccessedAt: timestamp("last_accessed_at").defaultNow().notNull(),
     expiresAt: timestamp("expires_at").notNull(),
     terminatedAt: timestamp("terminated_at"),
   },

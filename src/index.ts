@@ -5,7 +5,7 @@ import { bearerAuthMiddleware } from "./middleware/auth";
 import { errorHandler } from "./middleware/error";
 import { logger, requestLogger } from "./middleware/logger";
 import { userRateLimiter } from "./middleware/rateLimit";
-import { SessionManager } from "./modules/mcp/sessions";
+import { SessionManager } from "./modules/sessions/manager";
 import {
   healthRouter,
   mcpRouter,

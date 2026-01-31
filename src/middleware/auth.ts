@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { getClaudeAccessToken } from "../modules/oauth/claude";
+import { getMcpServerAccessToken } from "../modules/mcp/oauth";
 import { config } from "../shared/config";
 import { BEARER_PREFIX } from "../shared/constants";
 import { logger } from "./logger";
@@ -40,14 +40,14 @@ export async function bearerAuthMiddleware(
   const token = authHeader.slice(BEARER_PREFIX.length);
 
   try {
-    const tokenRecord = await getClaudeAccessToken(token);
+    const accessTokenRecord = await getMcpServerAccessToken(token);
 
-    if (!tokenRecord) {
+    if (!accessTokenRecord) {
       sendUnauthorized(res, "invalid_token", "Token not found or expired");
       return;
     }
 
-    req.userId = tokenRecord.userId;
+    req.userId = accessTokenRecord.userId;
     next();
   } catch (error) {
     logger.error(

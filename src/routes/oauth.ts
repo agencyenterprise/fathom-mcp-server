@@ -2,17 +2,32 @@ import { Router } from "express";
 import { asyncHandler } from "../middleware/error";
 import { oauthRateLimiter } from "../middleware/rateLimit";
 import {
-  getClaudeClient,
-  getFathomCallback,
-  postClaudeClient,
-  postClaudeAccessToken,
-} from "../modules/oauth/controller";
+  authorizeClientAndRedirectToFathom,
+  completeFathomAuthAndRedirectClient,
+  exchangeCodeForMcpAccessToken,
+  registerMcpServerOAuthClient,
+} from "../modules/mcp/controller";
 
 const router = Router();
 
-router.post("/register", oauthRateLimiter, asyncHandler(postClaudeClient));
-router.get("/authorize", oauthRateLimiter, asyncHandler(getClaudeClient));
-router.get("/fathom/callback", asyncHandler(getFathomCallback));
-router.post("/token", oauthRateLimiter, asyncHandler(postClaudeAccessToken));
+router.post(
+  "/register",
+  oauthRateLimiter,
+  asyncHandler(registerMcpServerOAuthClient),
+);
+router.get(
+  "/authorize",
+  oauthRateLimiter,
+  asyncHandler(authorizeClientAndRedirectToFathom),
+);
+router.get(
+  "/fathom/callback",
+  asyncHandler(completeFathomAuthAndRedirectClient),
+);
+router.post(
+  "/token",
+  oauthRateLimiter,
+  asyncHandler(exchangeCodeForMcpAccessToken),
+);
 
 export default router;

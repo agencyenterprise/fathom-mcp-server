@@ -46,8 +46,8 @@ function loadConfig() {
       clientId: env.FATHOM_CLIENT_ID,
       clientSecret: env.FATHOM_CLIENT_SECRET,
       redirectUrl: `${env.BASE_URL}/oauth/fathom/callback`,
-      authUrl: "https://fathom.video",
-      apiUrl: "https://api.fathom.ai/external/v1",
+      oauthBaseUrl: "https://fathom.video",
+      apiBaseUrl: "https://api.fathom.ai/external/v1",
     },
     claude: {
       callbackUrl: env.CLAUDE_AUTH_CALLBACK_URL,

@@ -4,7 +4,7 @@ import {
   retrieveAuthenticatedSession,
   routeToSessionOrInitialize,
   terminateAuthenticatedSession,
-} from "../modules/mcp/controller";
+} from "../modules/sessions/controller";
 
 const router = Router();
 
