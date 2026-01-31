@@ -1,34 +1,62 @@
 # Fathom MCP Server
 
-> Connect Claude to your Fathom meetings, transcripts, and AI summaries.
+> A remote MCP server that connects AI assistants like Claude to Fathom meetings, transcripts, and AI summaries.
 
 ## What is this?
 
-Fathom MCP Server is an open source Model Context Protocol (MCP) server that connects Claude to Fathom, a meeting recording and transcription service. It allows Claude to access your meetings, transcripts, and AI-generated summaries.
+Fathom MCP Server is an open source Model Context Protocol (MCP) server that enables MCP hosts (like Claude Desktop) to access Fathom meeting data. It acts as a bridge between AI assistants and Fathom's meeting recording and transcription service.
+
+Think of MCP as "USB-C for AI applications" — this server plugs Fathom's capabilities into any MCP-compatible AI assistant.
+
+## Server Type
+
+- Type: Remote MCP Server
+- Transport: Streamable HTTP
+- Authentication: OAuth 2.0
 
 ## URL
 
 https://www.fathom-mcp-server.com/mcp
 
-## Available Tools
+## MCP Tools Provided
+
+This MCP server exposes the following tools that AI models can invoke:
 
 - list_meetings: List meetings with filters (date, team, recorder)
-- search_meetings: Search meetings by title
+- search_meetings: Search meetings by title (MCP-native, not Fathom API)
 - get_transcript: Get full transcript for a recording
 - get_summary: Get AI-generated summary for a recording
 - list_teams: List all accessible teams
 - list_team_members: List members of a team
 
+## MCP Capabilities
+
+- Tools: Yes (6 tools)
+- Resources: No
+- Prompts: No
+
+## Compatible MCP Hosts
+
+- Claude Desktop
+- Claude.ai (via Connectors)
+- Any MCP-compatible AI assistant or agent
+
 ## How to Connect
 
-1. Open Claude Desktop
+1. Open Claude Desktop (MCP Host)
 2. Go to Settings > Connectors > Add Custom Connector
 3. Paste: https://www.fathom-mcp-server.com/mcp
-4. Authenticate with your Fathom account
+4. Authenticate with your Fathom account via OAuth
 
 ## Source Code
 
 https://github.com/agencyenterprise/fathom-mcp-server
+
+## Related
+
+- Model Context Protocol: https://modelcontextprotocol.io
+- MCP Registry: https://modelcontextprotocol.io/registry
+- Fathom: https://fathom.video
 
 ## License
 
