@@ -1,0 +1,35 @@
+# Fathom MCP Server
+
+> Connect Claude to your Fathom meetings, transcripts, and AI summaries.
+
+## What is this?
+
+Fathom MCP Server is an open source Model Context Protocol (MCP) server that connects Claude to Fathom, a meeting recording and transcription service. It allows Claude to access your meetings, transcripts, and AI-generated summaries.
+
+## URL
+
+https://www.fathom-mcp-server.com/mcp
+
+## Available Tools
+
+- list_meetings: List meetings with filters (date, team, recorder)
+- search_meetings: Search meetings by title
+- get_transcript: Get full transcript for a recording
+- get_summary: Get AI-generated summary for a recording
+- list_teams: List all accessible teams
+- list_team_members: List members of a team
+
+## How to Connect
+
+1. Open Claude Desktop
+2. Go to Settings > Connectors > Add Custom Connector
+3. Paste: https://www.fathom-mcp-server.com/mcp
+4. Authenticate with your Fathom account
+
+## Source Code
+
+https://github.com/agencyenterprise/fathom-mcp-server
+
+## License
+
+MIT

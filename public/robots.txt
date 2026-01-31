@@ -1,0 +1,9 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://www.fathom-mcp-server.com/sitemap.xml
+
+# LLMs
+# See also: /llms.txt
