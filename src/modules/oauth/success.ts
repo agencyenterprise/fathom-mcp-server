@@ -6,9 +6,10 @@ const BLOCKED_SCHEMES = ["javascript:", "data:", "vbscript:"];
 export function renderOAuthSuccessPage(req: Request, res: Response) {
   const redirect = validateRedirect(req.query.redirect as string);
 
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'unsafe-inline'",
+    "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'",
   );
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("X-Content-Type-Options", "nosniff");
