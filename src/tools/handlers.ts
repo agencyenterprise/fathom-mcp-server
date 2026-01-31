@@ -1,6 +1,5 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ZodError } from "zod";
-import { logger } from "../middleware/logger";
 import { FathomAPIClient } from "../modules/fathom/service";
 import { DEFAULT_MEETINGS_LIMIT, SEARCH_POOL_SIZE } from "../shared/constants";
 import { ErrorLogger } from "../shared/errors";
@@ -37,7 +36,6 @@ export async function listMeetings(
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     };
   } catch (error) {
-    logger.error({ tool: "list_meetings", error, userId }, "Tool error");
     return {
       content: [{ type: "text", text: formatToolError(error) }],
       isError: true,
@@ -57,7 +55,6 @@ export async function getTranscript(
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     };
   } catch (error) {
-    logger.error({ tool: "get_transcript", error, userId }, "Tool error");
     return {
       content: [{ type: "text", text: formatToolError(error) }],
       isError: true,
@@ -77,7 +74,6 @@ export async function getSummary(
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     };
   } catch (error) {
-    logger.error({ tool: "get_summary", error, userId }, "Tool error");
     return {
       content: [{ type: "text", text: formatToolError(error) }],
       isError: true,
@@ -97,7 +93,6 @@ export async function listTeams(
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     };
   } catch (error) {
-    logger.error({ tool: "list_teams", error, userId }, "Tool error");
     return {
       content: [{ type: "text", text: formatToolError(error) }],
       isError: true,
@@ -117,7 +112,6 @@ export async function listTeamMembers(
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     };
   } catch (error) {
-    logger.error({ tool: "list_team_members", error, userId }, "Tool error");
     return {
       content: [{ type: "text", text: formatToolError(error) }],
       isError: true,
@@ -160,7 +154,6 @@ export async function searchMeetings(
       ],
     };
   } catch (error) {
-    logger.error({ tool: "search_meetings", error, userId }, "Tool error");
     return {
       content: [{ type: "text", text: formatToolError(error) }],
       isError: true,

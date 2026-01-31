@@ -133,7 +133,10 @@ export class ToolServer {
 
   private getUserId(extra: ToolRequestExtra): string {
     if (!extra.sessionId) {
-      throw sessionError("missing_session", "No session ID provided in tool context");
+      throw sessionError(
+        "missing_session",
+        "No session ID provided in tool context",
+      );
     }
 
     const session = this.getActiveTransportFn(extra.sessionId);
