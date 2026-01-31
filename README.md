@@ -62,7 +62,7 @@ That's it. Ask Claude about your meetings.
 | Team and member info             | No      | No       | Fetched from Fathom and passed directly to Claude        |
 | OAuth tokens                     | Yes     | No       | Encrypted at rest (AES-256-GCM), never logged or exposed |
 
-- **Pass-through architecture**: This server acts as a secure proxy — your Fathom data flows directly from Fathom to Claude without being stored, cached, or logged
+- **Pass-through architecture**: This server acts as a secure proxy, your Fathom data flows directly from Fathom to Claude without being stored, cached, or logged
 - **Encryption at rest**: The only stored data (OAuth tokens) is encrypted using AES-256-GCM before being written to the database
 - **HTTPS only**: All communication between Claude, this server, and Fathom is encrypted in transit
 
@@ -91,9 +91,9 @@ Railway (recommended), Render, or any platform that provides:
 **Railway setup:**
 
 1. Fork/clone this repo
-2. Create a new Railway project
-3. Add a PostgreSQL database
-4. Deploy from your repo
+2. Create a new Railway project (you can deploy directly from your forked Github repo)
+3. Add a PostgreSQL database service in project
+4. Connect Database url to deployed repo in project and setup other envs
 
 ### 2. Create a Fathom OAuth App
 
@@ -102,17 +102,17 @@ Railway (recommended), Render, or any platform that provides:
 3. Set the redirect URI to `https://your-app-url.railway.app/oauth/fathom/callback`
 4. Note your Client ID and Client Secret
 
-### 3. Configure Environment Variables
+### 3. Configure Environment Variables (locally and in Railway)
 
-Set these in your hosting provider's dashboard:
+Set these in your hosting provider's dashboard (as well as your local .env file to test build and start commands locally before pushing changes)
 
-| Variable               | Description                                                  |
-| ---------------------- | ------------------------------------------------------------ |
-| `DATABASE_URL`         | PostgreSQL connection string (auto-set by Railway)           |
-| `BASE_URL`             | Your app's public URL (e.g., `https://your-app.railway.app`) |
-| `TOKEN_ENCRYPTION_KEY` | 32-byte hex key (generate with `openssl rand -hex 32`)       |
-| `FATHOM_CLIENT_ID`     | From step 2                                                  |
-| `FATHOM_CLIENT_SECRET` | From step 2                                                  |
+| Variable               | Description                                                            |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `DATABASE_URL`         | PostgreSQL connection string (auto-set by Railway - use public db url) |
+| `BASE_URL`             | Your app's public URL (e.g., `https://your-app.railway.app`)           |
+| `TOKEN_ENCRYPTION_KEY` | 32-byte hex key (generate with `openssl rand -hex 32`)                 |
+| `FATHOM_CLIENT_ID`     | From step 2                                                            |
+| `FATHOM_CLIENT_SECRET` | From step 2                                                            |
 
 ### 4. Initialize Database
 
@@ -139,7 +139,7 @@ https://your-app.railway.app/mcp
 ## Development
 
 ```bash
-npm run dev          # Start dev server with hot reload
+npm run dev          # Start dev server with hot reload only for testing
 npm run build        # Build for production
 npm run start        # Run production build
 npm run lint         # Check for linting errors
