@@ -7,7 +7,7 @@ Connect Claude to your Fathom meetings, transcripts, and AI summaries.
 Add this URL as a custom connector in Claude Desktop:
 
 ```
-https://fathom-mcp-production.up.railway.app/mcp
+https://www.fathom-mcp-server.com/mcp
 ```
 
 **Steps**:
@@ -52,55 +52,62 @@ The Fathom API itself only provides read access via its `public_api` scope. Writ
 
 ## Self-Hosting
 
-### Prerequisites
+Fathom OAuth apps require HTTPS redirect URIs, so local development with `http://localhost` isn't possible. Deploy to a hosting provider to test.
 
-- Node.js 18+
-- PostgreSQL 14+ installed, OR Docker (recommended)
-- Fathom OAuth app credentials
+### 1. Deploy to a Hosting Provider
 
-### 1. Get Fathom OAuth Credentials
+Railway (recommended), Render, or any platform that provides:
+
+- Node.js 18+ runtime
+- PostgreSQL database
+- HTTPS URL
+
+**Railway setup:**
+
+1. Fork/clone this repo
+2. Create a new Railway project
+3. Add a PostgreSQL database
+4. Deploy from your repo
+
+### 2. Create a Fathom OAuth App
 
 1. Go to [Fathom Developer Portal](https://developers.fathom.ai/oauth)
 2. Click "Register your app" (requires Fathom admin access)
-3. Note your Client ID and Client Secret
+3. Set the redirect URI to `https://your-app-url.railway.app/oauth/fathom/callback`
+4. Note your Client ID and Client Secret
 
-### 2. Database Setup
+### 3. Configure Environment Variables
 
-#### Option A: Using Docker (Recommended)
+Set these in your hosting provider's dashboard:
+
+| Variable               | Description                                                  |
+| ---------------------- | ------------------------------------------------------------ |
+| `DATABASE_URL`         | PostgreSQL connection string (auto-set by Railway)           |
+| `BASE_URL`             | Your app's public URL (e.g., `https://your-app.railway.app`) |
+| `TOKEN_ENCRYPTION_KEY` | 32-byte hex key (generate with `openssl rand -hex 32`)       |
+| `FATHOM_CLIENT_ID`     | From step 2                                                  |
+| `FATHOM_CLIENT_SECRET` | From step 2                                                  |
+
+### 4. Initialize Database
+
+Run migrations after first deploy:
 
 ```bash
-# Coming soon - see open-source-todos.md
+npm run db:push
 ```
 
-#### Option B: Local PostgreSQL
-
-1. Install PostgreSQL from https://www.postgresql.org/download/
-2. Create the database (run in terminal):
-   ```bash
-   createdb fathom_mcp
-   ```
-3. Copy `.env.example` to `.env` and set your connection string:
-   ```
-   DATABASE_URL=postgresql://localhost:5432/fathom_mcp
-   ```
-4. Run migrations:
-   ```bash
-   npm run db:migrate
-   ```
-
-### 3. Configure Environment
-
-Copy `.env.example` to `.env` and fill in all values:
+Or via Railway CLI:
 
 ```bash
-cp .env.example .env
+railway run npm run db:push
 ```
 
-### 4. Install & Run
+### 5. Connect Claude
 
-```bash
-npm install
-npm run dev
+Add your deployed URL as a custom connector in Claude Desktop:
+
+```
+https://your-app.railway.app/mcp
 ```
 
 ## Development
@@ -125,8 +132,6 @@ For pre-release features, use the staging URL:
 ```
 https://fathom-mcp-staging.up.railway.app/mcp
 ```
-
-<!-- TODO: Document what's in beta vs production -->
 
 ## Contributing
 
