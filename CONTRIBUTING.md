@@ -19,11 +19,15 @@ Fathom OAuth apps require HTTPS redirect URIs, so you'll need to deploy to test 
 2. Register a new app pointing to your deployed URL
 3. Set redirect URI: `https://your-app.railway.app/oauth/fathom/callback`
 
-### 3. Initialize Database
+### 3. Initialize Database Schema
+
+After adding a PostgreSQL database to your Railway project (step 1.3) and copying `DATABASE_URL` to your local `.env`, create the tables:
 
 ```bash
-railway run npm run db:push
+npm run db:push
 ```
+
+This connects to your Railway database and creates the required tables.
 
 ### 4. Test Your Changes
 

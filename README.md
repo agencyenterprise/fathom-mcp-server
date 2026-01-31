@@ -1,34 +1,46 @@
+<div align="center">
+
 # Fathom MCP
 
-Connect Claude to your Fathom meetings, transcripts, and AI summaries.
+**Connect Claude to your Fathom meetings, transcripts, and AI summaries.**
 
-## Use Now
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org)
+[![MCP](https://img.shields.io/badge/MCP-Compatible-purple.svg)](https://modelcontextprotocol.io)
 
-Add this URL as a custom connector in Claude Desktop:
+[Get Started](#get-started) | [Available Tools](#available-tools) | [Self-Hosting](#self-hosting) | [Contributing](CONTRIBUTING.md)
+
+</div>
+
+---
+
+## Get Started
+
+Connect in under 60 seconds:
 
 ```
 https://www.fathom-mcp-server.com/mcp
 ```
 
-**Steps**:
-
-1. Open Claude Desktop
-2. Go to Settings > Connectors > Add Custom Connector
+1. Open **Claude Desktop**
+2. Go to **Settings > Connectors > Add Custom Connector**
 3. Paste the URL above
-4. Authenticate with your Fathom account
+4. Authenticate with Fathom
 
-**For organizations**: Admins must add the connector in the organization's admin settings, not personal settings.
+That's it. Ask Claude about your meetings.
+
+> **Organizations**: Admins must add the connector via organization admin settings, not personal settings.
 
 ## Available Tools
 
-| Tool                | Description                                             | Source     |
-| ------------------- | ------------------------------------------------------- | ---------- |
-| `list_meetings`     | List meetings with filters (date, team, recorder, etc.) | Fathom API |
-| `search_meetings`   | Search meetings by title with optional filters          | MCP        |
-| `get_transcript`    | Get full transcript for a recording                     | Fathom API |
-| `get_summary`       | Get AI-generated summary for a recording                | Fathom API |
-| `list_teams`        | List all accessible teams                               | Fathom API |
-| `list_team_members` | List members of a team                                  | Fathom API |
+| Tool                | Description                                             | Source          |
+| ------------------- | ------------------------------------------------------- | --------------- |
+| `list_meetings`     | List meetings with filters (date, team, recorder, etc.) | Fathom API      |
+| `search_meetings`   | Search meetings by title with optional filters          | Custom MCP Tool |
+| `get_transcript`    | Get full transcript for a recording                     | Fathom API      |
+| `get_summary`       | Get AI-generated summary for a recording                | Fathom API      |
+| `list_teams`        | List all accessible teams                               | Fathom API      |
+| `list_team_members` | List members of a team                                  | Fathom API      |
 
 <!-- TODO: Add link to zod-openapi generated documentation -->
 
