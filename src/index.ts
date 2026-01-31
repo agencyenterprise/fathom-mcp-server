@@ -17,12 +17,7 @@ import { GRACEFUL_SHUTDOWN_TIMEOUT_MS } from "./shared/constants";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Production: public/ copied to dist/public/ by build script
-// Development: public/ at project root
-const publicPath =
-  config.nodeEnv === "production"
-    ? path.join(__dirname, "public")
-    : path.join(__dirname, "..", "public");
+const publicPath = path.join(__dirname, "public");
 
 const app = express();
 
@@ -32,6 +27,14 @@ sessionManager.startCleanupScheduler();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+if (config.nodeEnv !== "production") {
+  app.use((_req, res, next) => {
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    next();
+  });
+}
+
 app.use(express.static(publicPath));
 app.use(requestLogger);
 

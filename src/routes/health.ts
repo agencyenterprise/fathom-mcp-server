@@ -6,7 +6,7 @@ import { config } from "../shared/config";
 
 const router = Router();
 
-router.get("/", async (req, res) => {
+router.get("/", async (_req, res) => {
   let dbStatus = "ok";
   let configStatus = "ok";
   const issues: string[] = [];
@@ -16,18 +16,6 @@ router.get("/", async (req, res) => {
   } catch (error) {
     dbStatus = "error";
     logger.error({ error }, "Database health check failed");
-  }
-
-  const expectedUrl = req.protocol + "://" + req.get("host");
-  if (config.baseUrl !== expectedUrl) {
-    configStatus = "warning";
-    issues.push(
-      `BASE_URL mismatch: configured=${config.baseUrl}, actual=${expectedUrl}`,
-    );
-    logger.warn(
-      { configured: config.baseUrl, actual: expectedUrl },
-      "BASE_URL configuration mismatch",
-    );
   }
 
   if (config.encryptionKey.length !== 32) {

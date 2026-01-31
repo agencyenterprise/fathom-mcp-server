@@ -9,7 +9,7 @@ const pkgPath = join(process.cwd(), "package.json");
 const pkg: { version: string } = JSON.parse(readFileSync(pkgPath, "utf-8"));
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(["development", "production"]).default("development"),
+  NODE_ENV: z.enum(["staging", "production"]).default("staging"),
   PORT: z.coerce.number().default(3000),
   DATABASE_URL: z.string().min(1),
   BASE_URL: z.string().url(),

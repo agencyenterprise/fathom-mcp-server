@@ -11,7 +11,7 @@ function generateRequestId(): ReqId {
   return requestCounter;
 }
 
-const isDev = config.nodeEnv === "development";
+const isDev = config.nodeEnv === "staging";
 
 export const logger = pino({
   level: isDev ? "debug" : "info",
