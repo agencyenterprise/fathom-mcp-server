@@ -1,5 +1,5 @@
 {
-  "name": "fathom-mcp",
+  "name": "fathom-mcp-server",
   "version": "1.0.0",
   "description": "MCP server connecting Claude to Fathom meeting recordings, transcripts, and summaries",
   "type": "module",
@@ -7,7 +7,7 @@
   "author": "Jeff Patterson <jeff@ae.studio>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/agencyenterprise/fathom-mcp"
+    "url": "https://github.com/agencyenterprise/fathom-mcp-server"
   },
   "keywords": [
     "mcp",

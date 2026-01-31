@@ -33,16 +33,14 @@ That's it. Ask Claude about your meetings.
 
 ## Available Tools
 
-| Tool                | Description                                             | Source          |
-| ------------------- | ------------------------------------------------------- | --------------- |
-| `list_meetings`     | List meetings with filters (date, team, recorder, etc.) | Fathom API      |
-| `search_meetings`   | Search meetings by title with optional filters          | Custom MCP Tool |
-| `get_transcript`    | Get full transcript for a recording                     | Fathom API      |
-| `get_summary`       | Get AI-generated summary for a recording                | Fathom API      |
-| `list_teams`        | List all accessible teams                               | Fathom API      |
-| `list_team_members` | List members of a team                                  | Fathom API      |
-
-<!-- TODO: Add link to zod-openapi generated documentation -->
+| Tool                | Description                                             | Source     |
+| ------------------- | ------------------------------------------------------- | ---------- |
+| `list_meetings`     | List meetings with filters (date, team, recorder, etc.) | Fathom API |
+| `search_meetings`   | Search meetings by title with optional filters          | MCP        |
+| `get_transcript`    | Get full transcript for a recording                     | Fathom API |
+| `get_summary`       | Get AI-generated summary for a recording                | Fathom API |
+| `list_teams`        | List all accessible teams                               | Fathom API |
+| `list_team_members` | List members of a team                                  | Fathom API |
 
 ### Example Usage in Claude
 
