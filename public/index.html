@@ -3,7 +3,45 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fathom MCP</title>
+    <title>Fathom MCP Server - Connect Claude to Your Meetings</title>
+    <meta
+      name="description"
+      content="Connect Claude to your Fathom meetings, transcripts, and AI summaries. Open source MCP server for seamless AI-powered meeting access."
+    />
+    <meta
+      name="keywords"
+      content="fathom, mcp, claude, ai, meetings, transcripts, summaries, model context protocol"
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://www.fathom-mcp-server.com" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="Fathom MCP - Connect Claude to Your Meetings"
+    />
+    <meta
+      property="og:description"
+      content="Connect Claude to your Fathom meetings, transcripts, and AI summaries."
+    />
+    <meta property="og:url" content="https://www.fathom-mcp-server.com" />
+    <meta
+      property="og:image"
+      content="https://www.fathom-mcp-server.com/logo.png"
+    />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta
+      name="twitter:title"
+      content="Fathom MCP - Connect Claude to Your Meetings"
+    />
+    <meta
+      name="twitter:description"
+      content="Connect Claude to your Fathom meetings, transcripts, and AI summaries."
+    />
+
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/logo.png" />
@@ -25,7 +63,7 @@
       main {
         text-align: center;
       }
-      img {
+      img.logo {
         width: 80px;
         height: 80px;
         border-radius: 16px;
@@ -37,12 +75,50 @@
         font-weight: 500;
         letter-spacing: -0.5px;
       }
+      p {
+        margin-top: 12px;
+        color: #888;
+        font-size: 14px;
+        max-width: 300px;
+      }
+      .links {
+        margin-top: 24px;
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+      }
+      .links a {
+        color: #888;
+        text-decoration: none;
+        font-size: 14px;
+        transition: color 0.2s;
+      }
+      .links a:hover {
+        color: #fff;
+      }
     </style>
   </head>
   <body>
     <main>
-      <img src="/logo.png" alt="Fathom MCP" />
+      <img class="logo" src="/logo.png" alt="Fathom MCP" />
       <h1>Fathom MCP</h1>
+      <p>
+        Connect Claude to your Fathom meetings, transcripts, and AI summaries.
+      </p>
+      <div class="links">
+        <a
+          href="https://github.com/agencyenterprise/fathom-mcp-server"
+          target="_blank"
+          rel="noopener"
+          >GitHub</a
+        >
+        <a
+          href="https://github.com/agencyenterprise/fathom-mcp-server#get-started"
+          target="_blank"
+          rel="noopener"
+          >Get Started</a
+        >
+      </div>
     </main>
   </body>
 </html>
