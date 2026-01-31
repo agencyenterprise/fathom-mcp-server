@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { ErrorLogger } from "../../shared/errors";
 
-const ALLOWED_SCHEMES = ["claude:", "cursor:", "vscode:"];
+const BLOCKED_SCHEMES = ["javascript:", "data:", "vbscript:"];
 
 export function renderOAuthSuccessPage(req: Request, res: Response) {
   const redirect = validateRedirect(req.query.redirect as string);
@@ -27,7 +27,7 @@ function validateRedirect(redirect: string | undefined): string {
     throw ErrorLogger.validation("Invalid redirect URL");
   }
 
-  if (!ALLOWED_SCHEMES.includes(url.protocol)) {
+  if (BLOCKED_SCHEMES.includes(url.protocol)) {
     throw ErrorLogger.validation("Invalid redirect scheme");
   }
 
