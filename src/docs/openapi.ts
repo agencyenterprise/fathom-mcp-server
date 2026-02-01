@@ -6,6 +6,18 @@ import { searchMeetingsReqSchema } from "../shared/schemas";
 
 const searchMeetingsRequest = searchMeetingsReqSchema.meta({
   description: "Search parameters for finding meetings by title",
+  example: {
+    query: "weekly standup",
+    calendar_invitees_domains: ["acme.com", "partner.io"],
+    calendar_invitees_domains_type: "all",
+    created_after: "2024-01-01T00:00:00Z",
+    created_before: "2024-12-31T23:59:59Z",
+    cursor: "abc123",
+    include_action_items: true,
+    include_crm_matches: false,
+    recorded_by: ["john@company.com", "jane@company.com"],
+    teams: ["Engineering", "Sales"],
+  },
 });
 
 const searchMeetingsResponse = z
