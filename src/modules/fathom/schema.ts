@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const speakerSchema = z.object({
   display_name: z.string(),
-  matched_calendar_invitee_email: z.string().email().nullable().optional(),
+  matched_calendar_invitee_email: z.email().nullable().optional(),
 });
 
 const transcriptEntrySchema = z.object({
@@ -18,25 +18,25 @@ const summarySchema = z.object({
 
 const assigneeSchema = z.object({
   name: z.string().nullable(),
-  email: z.string().email().nullable(),
+  email: z.email().nullable(),
   team: z.string().nullable(),
 });
 
 const contactSchema = z.object({
   name: z.string(),
-  email: z.string().email(),
-  record_url: z.string().url(),
+  email: z.email(),
+  record_url: z.url(),
 });
 
 const dealSchema = z.object({
   name: z.string(),
   amount: z.number(),
-  record_url: z.string().url(),
+  record_url: z.url(),
 });
 
 const companySchema = z.object({
   name: z.string(),
-  record_url: z.string().url(),
+  record_url: z.url(),
 });
 
 const actionItemSchema = z.object({
@@ -58,7 +58,7 @@ const calendarInviteeSchema = z.object({
 
 const recordedBySchema = z.object({
   name: z.string(),
-  email: z.string().email(),
+  email: z.email(),
   email_domain: z.string(),
   team: z.string().nullable(),
 });

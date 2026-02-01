@@ -9,7 +9,7 @@ export const fathomTokenResSchema = z.object({
 export type FathomTokenResType = z.infer<typeof fathomTokenResSchema>;
 
 export const registerMcpServerOAuthClientReqSchema = z.object({
-  redirect_uris: z.array(z.string().url()),
+  redirect_uris: z.array(z.url()),
   client_name: z.string().optional(),
   token_endpoint_auth_method: z.string().optional(),
   grant_types: z.array(z.string()).optional(),
@@ -18,7 +18,7 @@ export const registerMcpServerOAuthClientReqSchema = z.object({
 
 export const authorizeClientAndRedirectToFathomReqSchema = z.object({
   client_id: z.string(),
-  redirect_uri: z.string().url(),
+  redirect_uri: z.url(),
   response_type: z.literal("code"),
   state: z.string(),
   code_challenge: z.string().optional(),

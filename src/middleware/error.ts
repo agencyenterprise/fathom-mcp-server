@@ -30,13 +30,13 @@ export function errorHandler(
 
   if (err instanceof ZodError) {
     logger.error(
-      { errorType: "validation", errors: err.errors },
+      { errorType: "validation", errors: err.issues },
       "Validation error",
     );
 
     res.status(400).json({
       error: "invalid_request",
-      error_description: err.errors[0]?.message || "Invalid parameters",
+      error_description: err.issues[0]?.message || "Invalid parameters",
     });
     return;
   }

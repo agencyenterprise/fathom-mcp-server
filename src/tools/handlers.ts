@@ -15,7 +15,7 @@ function formatToolError(error: unknown): string {
     return error.message;
   }
   if (error instanceof ZodError) {
-    return error.errors[0]?.message || "Invalid parameters";
+    return error.issues[0]?.message || "Invalid parameters";
   }
   return "An unexpected error occurred";
 }
