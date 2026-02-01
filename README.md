@@ -10,7 +10,7 @@
 
 [Get Started](#get-started) | [Available Tools](#available-tools) | [API Docs](https://www.fathom-mcp-server.com/docs) | [Self-Hosting](#self-hosting) | [Contributing](CONTRIBUTING.md)
 
-🔒 [Your data is 100% secure](#security) 🔒
+<sub>🔒 <a href="#security">Your data is 100% secure</a> 🔒</sub>
 
 </div>
 
