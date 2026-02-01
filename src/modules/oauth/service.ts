@@ -7,6 +7,11 @@ import {
   mcpServerAuthorizationCodes,
   mcpServerOAuthClients,
   mcpServerOAuthStates,
+  type FathomOAuthToken,
+  type McpServerAccessToken,
+  type McpServerAuthorizationCode,
+  type McpServerOAuthClient,
+  type McpServerOAuthState,
 } from "../../db";
 import {
   MCP_SERVER_ACCESS_TOKEN_TTL_MS,
@@ -31,7 +36,9 @@ export async function insertMcpServerOAuthClient(
   return { clientId };
 }
 
-export async function findMcpServerOAuthClient(clientId: string) {
+export async function findMcpServerOAuthClient(
+  clientId: string,
+): Promise<McpServerOAuthClient | null> {
   const result = await db
     .select()
     .from(mcpServerOAuthClients)
@@ -64,7 +71,9 @@ export async function createMcpServerOAuthState(
   return mcpServerOAuthState;
 }
 
-export async function getMcpServerOAuthState(state: string) {
+export async function getMcpServerOAuthState(
+  state: string,
+): Promise<McpServerOAuthState | null> {
   const result = await db
     .select()
     .from(mcpServerOAuthStates)
@@ -110,7 +119,9 @@ export async function createMcpServerAuthorizationCode(
   return code;
 }
 
-export async function consumeMcpServerAuthorizationCode(code: string) {
+export async function consumeMcpServerAuthorizationCode(
+  code: string,
+): Promise<McpServerAuthorizationCode | null> {
   return await db.transaction(async (tx) => {
     const authorizationCodeRecords = await tx
       .select()
@@ -153,7 +164,9 @@ export async function createMcpServerAccessToken(
   return token;
 }
 
-export async function getMcpServerAccessToken(token: string) {
+export async function getMcpServerAccessToken(
+  token: string,
+): Promise<McpServerAccessToken | null> {
   const accessTokenRecords = await db
     .select()
     .from(mcpServerAccessTokens)
@@ -195,7 +208,9 @@ export async function insertFathomToken(
     });
 }
 
-export async function getFathomOAuthToken(userId: string) {
+export async function getFathomOAuthToken(
+  userId: string,
+): Promise<FathomOAuthToken | null> {
   const result = await db
     .select()
     .from(fathomOAuthTokens)
