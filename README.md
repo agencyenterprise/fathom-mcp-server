@@ -10,7 +10,7 @@
 
 [Get Started](#get-started) | [Available Tools](#available-tools) | [API Docs](https://www.fathom-mcp-server.com/docs) | [Self-Hosting](#self-hosting) | [Contributing](CONTRIBUTING.md)
 
-<sub>🔒 <a href="#security">Your data is 100% secure</a> 🔒</sub>
+[![Security](https://img.shields.io/badge/🔒_Your_data_is_100%25_secure_🔒-grey?style=flat)](#security)
 
 </div>
 
