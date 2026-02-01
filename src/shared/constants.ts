@@ -14,10 +14,6 @@ export const GRACEFUL_SHUTDOWN_TIMEOUT_MS = 10 * 1000;
 export const FATHOM_API_TIMEOUT_MS = 30 * 1000;
 export const FATHOM_API_SCOPE = "public_api";
 
-// Meetings
-export const DEFAULT_MEETINGS_LIMIT = 25;
-export const SEARCH_POOL_SIZE = 100;
-
 // OAuth (shared)
 export const BEARER_PREFIX = "Bearer ";
 export const OAUTH_GRANT_TYPE_AUTH_CODE = "authorization_code";
