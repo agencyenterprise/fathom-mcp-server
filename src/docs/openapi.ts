@@ -3,21 +3,14 @@ import { createDocument, type oas31 } from "zod-openapi";
 import { listMeetingsResSchema } from "../modules/fathom/schema";
 import { config } from "../shared/config";
 import { searchMeetingsReqSchema } from "../shared/schemas";
+import {
+  searchMeetingsRequestExample,
+  searchMeetingsResponseExample,
+} from "./examples";
 
 const searchMeetingsRequest = searchMeetingsReqSchema.meta({
   description: "Search parameters for finding meetings by title",
-  example: {
-    query: "weekly standup",
-    calendar_invitees_domains: ["acme.com", "partner.io"],
-    calendar_invitees_domains_type: "all",
-    created_after: "2024-01-01T00:00:00Z",
-    created_before: "2024-12-31T23:59:59Z",
-    cursor: "abc123",
-    include_action_items: true,
-    include_crm_matches: false,
-    recorded_by: ["john@company.com", "jane@company.com"],
-    teams: ["Engineering", "Sales"],
-  },
+  example: searchMeetingsRequestExample,
 });
 
 const searchMeetingsResponse = z
@@ -26,6 +19,7 @@ const searchMeetingsResponse = z
   })
   .meta({
     description: "Filtered list of meetings matching the search query",
+    example: searchMeetingsResponseExample,
   });
 
 export const openapiDocument: oas31.OpenAPIObject = createDocument({
