@@ -7,6 +7,7 @@ import { logger, requestLogger } from "./middleware/logger";
 import { userRateLimiter } from "./middleware/rateLimit";
 import { SessionManager } from "./modules/sessions/manager";
 import {
+  docsRouter,
   healthRouter,
   mcpRouter,
   oauthRouter,
@@ -38,6 +39,7 @@ if (config.nodeEnv !== "production") {
 app.use(express.static(publicPath));
 app.use(requestLogger);
 
+app.use("/docs", docsRouter);
 app.use("/health", healthRouter);
 app.use("/.well-known", wellKnownRouter);
 app.use("/oauth", oauthRouter);

@@ -8,7 +8,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-purple.svg)](https://modelcontextprotocol.io)
 
-[Get Started](#get-started) | [Available Tools](#available-tools) | [Self-Hosting](#self-hosting) | [Contributing](CONTRIBUTING.md)
+[Get Started](#get-started) | [Available Tools](#available-tools) | [API Docs](https://www.fathom-mcp-server.com/docs) | [Self-Hosting](#self-hosting) | [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -161,12 +161,16 @@ npm run build        # Build for production
 npm run start        # Run production build
 npm run lint         # Check for linting errors
 npm run lint:fix     # Fix linting errors
+npm run typecheck    # Run TypeScript type checking
+npm run ci           # Run all CI checks (lint, typecheck, build)
 npm run format       # Format code with Prettier
 npm run db:studio    # Open Drizzle Studio for database inspection
 npm run db:generate  # Generate migrations from schema changes
 npm run db:migrate   # Run pending migrations
 npm run db:push      # Push schema directly (dev only)
 ```
+
+> **Tip**: Run `npm run ci` before pushing to ensure your changes pass GitHub Actions.
 
 ## Beta Testing
 

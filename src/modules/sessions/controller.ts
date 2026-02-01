@@ -1,6 +1,5 @@
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { Request, Response } from "express";
-import type { AuthenticatedRequest } from "../../middleware/auth";
 import { ErrorLogger } from "../../shared/errors";
 import type { SessionManager } from "./manager";
 import { sessionsReqSchema } from "./schema";
@@ -9,10 +8,7 @@ function getSessionManager(req: Request): SessionManager {
   return req.app.locals.sessionManager;
 }
 
-export async function routeToSessionOrInitialize(
-  req: AuthenticatedRequest,
-  res: Response,
-) {
+export async function routeToSessionOrInitialize(req: Request, res: Response) {
   const sessionManager = getSessionManager(req);
   const { sessionId, userId } = sessionsReqSchema.parse({
     sessionId: req.headers["mcp-session-id"],
@@ -51,7 +47,7 @@ export async function routeToSessionOrInitialize(
 }
 
 export async function retrieveAuthenticatedSession(
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
 ) {
   const sessionManager = getSessionManager(req);
@@ -77,7 +73,7 @@ export async function retrieveAuthenticatedSession(
 }
 
 export async function terminateAuthenticatedSession(
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
 ) {
   const sessionManager = getSessionManager(req);
