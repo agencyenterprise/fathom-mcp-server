@@ -48,10 +48,10 @@ export class ToolServer {
       {
         title: "List Meetings",
         description:
-          "List Fathom meetings with optional filters: limit (1-100), cursor (pagination), " +
+          "List Fathom meetings with optional filters: cursor (pagination), " +
           "created_after, created_before (ISO timestamps), calendar_invitees_domains (company domains), " +
           "calendar_invitees_domains_type (all/only_internal/one_or_more_external), " +
-          "teams (team names), recorded_by (recorder emails), include_action_items (boolean)",
+          "teams (team names), recorded_by (recorder emails), include_action_items (boolean), include_crm_matches (boolean)",
         inputSchema: listMeetingsReqSchema.shape,
       },
       async (args, extra) => {
@@ -66,8 +66,9 @@ export class ToolServer {
         title: "Search Meetings",
         description:
           "Search Fathom meetings by title. Required: query (search term). " +
-          "Optional filters: limit (1-100), created_after, created_before (ISO timestamps), " +
-          "calendar_invitees_domains, calendar_invitees_domains_type, teams, recorded_by",
+          "Optional filters: cursor (pagination), created_after, created_before (ISO timestamps), " +
+          "calendar_invitees_domains, calendar_invitees_domains_type, teams, recorded_by, " +
+          "include_action_items (boolean), include_crm_matches (boolean)",
         inputSchema: searchMeetingsReqSchema.shape,
       },
       async (args, extra) => {
@@ -121,7 +122,7 @@ export class ToolServer {
       {
         title: "List Team Members",
         description:
-          "List members of a Fathom team. Optional: team_name to filter by team, cursor for pagination.",
+          "List members of a Fathom team. Optional: team to filter by team name, cursor for pagination.",
         inputSchema: listTeamMembersReqSchema.shape,
       },
       async (args, extra) => {
