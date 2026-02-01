@@ -2,6 +2,7 @@ import { logger } from "../../middleware/logger";
 import { config } from "../../shared/config";
 import { BEARER_PREFIX, FATHOM_API_TIMEOUT_MS } from "../../shared/constants";
 import { ErrorLogger } from "../../shared/errors";
+import type { ListMeetingsReqType } from "../../shared/schemas";
 import { fetchFathomOAuthToken } from "../oauth/controller";
 import {
   listMeetingsResSchema,
@@ -9,14 +10,12 @@ import {
   listTeamsResSchema,
   summaryResSchema,
   transcriptResSchema,
-  type ListMeetingsReqType,
   type ListMeetingsResType,
   type ListTeamMembersResType,
   type ListTeamsResType,
   type SummaryResType,
   type TranscriptResType,
 } from "./schema";
-
 export class FathomAPIClient {
   private accessToken: string;
 

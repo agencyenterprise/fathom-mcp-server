@@ -1,7 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ZodError } from "zod";
 import { FathomAPIClient } from "../modules/fathom/api";
-import { DEFAULT_MEETINGS_LIMIT, SEARCH_POOL_SIZE } from "../shared/constants";
 import { ErrorLogger } from "../shared/errors";
 import {
   listMeetingsReqSchema,
@@ -28,10 +27,7 @@ export async function listMeetings(
   try {
     const input = listMeetingsReqSchema.parse(args);
     const service = await FathomAPIClient.createAuthorizedService(userId);
-    const data = await service.listMeetings({
-      ...input,
-      limit: input.limit ?? DEFAULT_MEETINGS_LIMIT,
-    });
+    const data = await service.listMeetings(input);
     return {
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     };
@@ -105,9 +101,9 @@ export async function listTeamMembers(
   args: unknown,
 ): Promise<CallToolResult> {
   try {
-    const { team_name, cursor } = listTeamMembersReqSchema.parse(args);
+    const { team, cursor } = listTeamMembersReqSchema.parse(args);
     const service = await FathomAPIClient.createAuthorizedService(userId);
-    const data = await service.listTeamMembers(team_name, cursor);
+    const data = await service.listTeamMembers(team, cursor);
     return {
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     };
@@ -124,12 +120,10 @@ export async function searchMeetings(
   args: unknown,
 ): Promise<CallToolResult> {
   try {
+    // note for zod schema this seraches title and meeting title
     const input = searchMeetingsReqSchema.parse(args);
     const service = await FathomAPIClient.createAuthorizedService(userId);
-    const data = await service.listMeetings({
-      ...input,
-      limit: SEARCH_POOL_SIZE,
-    });
+    const data = await service.listMeetings(input);
 
     const query = input.query.toLowerCase();
     const filtered = data.items.filter(
@@ -138,17 +132,11 @@ export async function searchMeetings(
         m.meeting_title?.toLowerCase().includes(query),
     );
 
-    const resultsLimit = input.limit ?? DEFAULT_MEETINGS_LIMIT;
-
     return {
       content: [
         {
           type: "text",
-          text: JSON.stringify(
-            { items: filtered.slice(0, resultsLimit) },
-            null,
-            2,
-          ),
+          text: JSON.stringify({ items: filtered }, null, 2),
         },
       ],
     };

@@ -33,14 +33,33 @@ That's it. Ask Claude about your meetings.
 
 ## Available Tools
 
-| Tool                | Description                                             | Source     |
-| ------------------- | ------------------------------------------------------- | ---------- |
-| `list_meetings`     | List meetings with filters (date, team, recorder, etc.) | Fathom API |
-| `search_meetings`   | Search meetings by title with optional filters          | MCP        |
-| `get_transcript`    | Get full transcript for a recording                     | Fathom API |
-| `get_summary`       | Get AI-generated summary for a recording                | Fathom API |
-| `list_teams`        | List all accessible teams                               | Fathom API |
-| `list_team_members` | List members of a team                                  | Fathom API |
+| Tool                | Description                                             | Docs                                                                                    |
+| ------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `list_meetings`     | List meetings with filters (date, team, recorder, etc.) | [Fathom API](https://developers.fathom.ai/api-reference/meetings/list-meetings)         |
+| `search_meetings`   | Search meetings by title with optional filters          | [MCP Custom](#custom-mcp-tools)                                                         |
+| `get_transcript`    | Get full transcript for a recording                     | [Fathom API](https://developers.fathom.ai/api-reference/recordings/get-transcript)      |
+| `get_summary`       | Get AI-generated summary for a recording                | [Fathom API](https://developers.fathom.ai/api-reference/recordings/get-summary)         |
+| `list_teams`        | List all accessible teams                               | [Fathom API](https://developers.fathom.ai/sdks/available-methods)                       |
+| `list_team_members` | List members of a team                                  | [Fathom API](https://developers.fathom.ai/api-reference/team-members/list-team-members) |
+
+### Custom MCP Tools
+
+Tools marked as **MCP Custom** are built specifically for this server and don't exist in the Fathom API. See the [/docs](https://www.fathom-mcp-server.com/docs) page for full parameter documentation.
+
+#### `search_meetings`
+
+Search meetings by title. This is an MCP-native tool that performs client-side filtering since Fathom's API doesn't provide a search endpoint.
+
+| Parameter                        | Type     | Required | Description                                        |
+| -------------------------------- | -------- | -------- | -------------------------------------------------- |
+| `query`                          | string   | ✓        | Search term to match against meeting titles        |
+| `limit`                          | number   |          | Max results to return (1-100)                      |
+| `created_after`                  | string   |          | ISO datetime - only meetings created after this    |
+| `created_before`                 | string   |          | ISO datetime - only meetings created before this   |
+| `calendar_invitees_domains`      | string[] |          | Filter by attendee company domains                 |
+| `calendar_invitees_domains_type` | enum     |          | `all` \| `only_internal` \| `one_or_more_external` |
+| `teams`                          | string[] |          | Filter by team names                               |
+| `recorded_by`                    | string[] |          | Filter by recorder email addresses                 |
 
 ### Example Usage in Claude
 
