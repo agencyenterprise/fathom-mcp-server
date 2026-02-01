@@ -157,6 +157,10 @@ For pre-release features, use the staging URL:
 https://fathom-mcp-staging.up.railway.app/mcp
 ```
 
+## Fathom AI Deep dive
+
+https://developers.fathom.ai/llms.txt
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.

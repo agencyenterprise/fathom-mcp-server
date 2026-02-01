@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const speakerSchema = z.object({
   display_name: z.string(),
-  matched_calendar_invitee_email: z.string().nullable().optional(),
+  matched_calendar_invitee_email: z.string().email().nullable().optional(),
 });
 
 const transcriptEntrySchema = z.object({
@@ -18,8 +18,25 @@ const summarySchema = z.object({
 
 const assigneeSchema = z.object({
   name: z.string().nullable(),
-  email: z.string().nullable(),
+  email: z.string().email().nullable(),
   team: z.string().nullable(),
+});
+
+const contactSchema = z.object({
+  name: z.string(),
+  email: z.string().email(),
+  record_url: z.string().url(),
+});
+
+const dealSchema = z.object({
+  name: z.string(),
+  amount: z.number(),
+  record_url: z.string().url(),
+});
+
+const companySchema = z.object({
+  name: z.string(),
+  record_url: z.string().url(),
 });
 
 const actionItemSchema = z.object({
@@ -33,17 +50,24 @@ const actionItemSchema = z.object({
 
 const calendarInviteeSchema = z.object({
   name: z.string().nullable(),
-  matched_speaker_display_name: z.string().nullable().optional(),
   email: z.string().nullable(),
   email_domain: z.string().nullable(),
   is_external: z.boolean(),
+  matched_speaker_display_name: z.string().nullable().optional(),
 });
 
 const recordedBySchema = z.object({
   name: z.string(),
-  email: z.string(),
+  email: z.string().email(),
   email_domain: z.string(),
   team: z.string().nullable(),
+});
+
+const crmMatchesSchema = z.object({
+  contacts: z.array(contactSchema).optional(),
+  companies: z.array(companySchema).optional(),
+  deals: z.array(dealSchema).optional(),
+  error: z.string().nullable().optional(),
 });
 
 const meetingSchema = z.object({
@@ -53,10 +77,10 @@ const meetingSchema = z.object({
   url: z.string(),
   share_url: z.string(),
   created_at: z.string(),
-  scheduled_start_time: z.string().nullable(),
-  scheduled_end_time: z.string().nullable(),
-  recording_start_time: z.string().nullable(),
-  recording_end_time: z.string().nullable(),
+  scheduled_start_time: z.string(),
+  scheduled_end_time: z.string(),
+  recording_start_time: z.string(),
+  recording_end_time: z.string(),
   calendar_invitees_domains_type: z.enum([
     "only_internal",
     "one_or_more_external",
@@ -67,12 +91,28 @@ const meetingSchema = z.object({
   transcript: z.array(transcriptEntrySchema).nullable().optional(),
   default_summary: summarySchema.nullable().optional(),
   action_items: z.array(actionItemSchema).nullable().optional(),
+  crm_matches: crmMatchesSchema.nullable().optional(),
 });
 
+export const listMeetingsReqSchema = z.object({
+  calendar_invitees_domains: z.array(z.string()).optional(),
+  calendar_invitees_domains_type: z
+    .enum(["all", "only_internal", "one_or_more_external"])
+    .optional(),
+  created_after: z.string().datetime().optional(),
+  created_before: z.string().datetime().optional(),
+  cursor: z.string().optional(),
+  include_action_items: z.boolean().optional(),
+  include_crm_matches: z.boolean().optional(),
+  recorded_by: z.array(z.string().email()).optional(),
+  teams: z.array(z.string()).optional(),
+});
+export type ListMeetingsReqType = z.infer<typeof listMeetingsReqSchema>;
+
 export const listMeetingsResSchema = z.object({
-  items: z.array(meetingSchema),
   limit: z.number().nullable(),
   next_cursor: z.string().nullable(),
+  items: z.array(meetingSchema),
 });
 export type ListMeetingsResType = z.infer<typeof listMeetingsResSchema>;
 

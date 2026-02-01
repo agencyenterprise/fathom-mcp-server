@@ -2,7 +2,6 @@ import { logger } from "../../middleware/logger";
 import { config } from "../../shared/config";
 import { BEARER_PREFIX, FATHOM_API_TIMEOUT_MS } from "../../shared/constants";
 import { ErrorLogger } from "../../shared/errors";
-import type { ListMeetingsReqType } from "../../shared/schemas";
 import { fetchFathomOAuthToken } from "../oauth/controller";
 import {
   listMeetingsResSchema,
@@ -10,6 +9,7 @@ import {
   listTeamsResSchema,
   summaryResSchema,
   transcriptResSchema,
+  type ListMeetingsReqType,
   type ListMeetingsResType,
   type ListTeamMembersResType,
   type ListTeamsResType,
@@ -89,15 +89,15 @@ export class FathomAPIClient {
     params?: ListMeetingsReqType,
   ): Promise<ListMeetingsResType> {
     const query = this.buildReqQuery({
-      limit: params?.limit,
-      cursor: params?.cursor,
-      created_after: params?.created_after,
-      created_before: params?.created_before,
       calendar_invitees_domains: params?.calendar_invitees_domains,
       calendar_invitees_domains_type: params?.calendar_invitees_domains_type,
-      teams: params?.teams,
-      recorded_by: params?.recorded_by,
+      created_after: params?.created_after,
+      created_before: params?.created_before,
+      cursor: params?.cursor,
       include_action_items: params?.include_action_items,
+      include_crm_matches: params?.include_crm_matches,
+      recorded_by: params?.recorded_by,
+      teams: params?.teams,
     });
     const data = await this.getRequest(`/meetings${query}`);
     return listMeetingsResSchema.parse(data);
@@ -120,10 +120,10 @@ export class FathomAPIClient {
   }
 
   async listTeamMembers(
-    teamName?: string,
+    team?: string,
     cursor?: string,
   ): Promise<ListTeamMembersResType> {
-    const query = this.buildReqQuery({ team: teamName, cursor });
+    const query = this.buildReqQuery({ team, cursor });
     const data = await this.getRequest(`/team_members${query}`);
     return listTeamMembersResSchema.parse(data);
   }
