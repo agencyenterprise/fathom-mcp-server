@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ZodError } from "zod";
-import { FathomAPIClient } from "../modules/fathom/service";
+import { FathomAPIClient } from "../modules/fathom/api";
 import { DEFAULT_MEETINGS_LIMIT, SEARCH_POOL_SIZE } from "../shared/constants";
 import { ErrorLogger } from "../shared/errors";
 import {
@@ -48,9 +48,9 @@ export async function getTranscript(
   args: unknown,
 ): Promise<CallToolResult> {
   try {
-    const input = recordingReqSchema.parse(args);
+    const { recording_id } = recordingReqSchema.parse(args);
     const service = await FathomAPIClient.createAuthorizedService(userId);
-    const data = await service.getTranscript(input.recording_id);
+    const data = await service.getTranscript(recording_id);
     return {
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     };
@@ -67,9 +67,9 @@ export async function getSummary(
   args: unknown,
 ): Promise<CallToolResult> {
   try {
-    const input = recordingReqSchema.parse(args);
+    const { recording_id } = recordingReqSchema.parse(args);
     const service = await FathomAPIClient.createAuthorizedService(userId);
-    const data = await service.getSummary(input.recording_id);
+    const data = await service.getSummary(recording_id);
     return {
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     };
@@ -86,9 +86,9 @@ export async function listTeams(
   args: unknown,
 ): Promise<CallToolResult> {
   try {
-    const input = listTeamsReqSchema.parse(args);
+    const { cursor } = listTeamsReqSchema.parse(args);
     const service = await FathomAPIClient.createAuthorizedService(userId);
-    const data = await service.listTeams(input.cursor);
+    const data = await service.listTeams(cursor);
     return {
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     };
@@ -105,9 +105,9 @@ export async function listTeamMembers(
   args: unknown,
 ): Promise<CallToolResult> {
   try {
-    const input = listTeamMembersReqSchema.parse(args);
+    const { team_name, cursor } = listTeamMembersReqSchema.parse(args);
     const service = await FathomAPIClient.createAuthorizedService(userId);
-    const data = await service.listTeamMembers(input.team_name, input.cursor);
+    const data = await service.listTeamMembers(team_name, cursor);
     return {
       content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
     };

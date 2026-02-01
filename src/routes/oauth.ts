@@ -6,7 +6,7 @@ import {
   exchangeCodeForMcpAccessToken,
   registerMcpServerOAuthClient,
 } from "../modules/oauth/controller";
-import { renderOAuthSuccessPage } from "../modules/oauth/success";
+import { renderOAuthSuccessPage } from "../modules/oauth/success-page";
 
 const router = Router();
 

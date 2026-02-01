@@ -4,15 +4,9 @@ import { config } from "../shared/config";
 import { BEARER_PREFIX } from "../shared/constants";
 import { logger } from "./logger";
 
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Express {
-    interface Request {
-      userId?: string;
-    }
-  }
+export interface AuthenticatedRequest extends Request {
+  userId: string;
 }
-
 const WWW_AUTHENTICATE_VALUE = `Bearer resource_metadata="${config.baseUrl}/.well-known/oauth-protected-resource"`;
 
 function sendUnauthorized(res: Response, code: string, message: string) {
@@ -47,7 +41,7 @@ export async function bearerAuthMiddleware(
       return;
     }
 
-    req.userId = accessTokenRecord.userId;
+    (req as AuthenticatedRequest).userId = accessTokenRecord.userId;
     next();
   } catch (error) {
     logger.error(
