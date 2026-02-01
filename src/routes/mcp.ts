@@ -1,11 +1,20 @@
 import { Router } from "express";
-import { asyncHandler } from "../middleware/error";
-import { McpController } from "../modules/mcp";
+import {
+  retrieveAuthenticatedSession,
+  routeToSessionOrInitialize,
+  terminateAuthenticatedSession,
+} from "../modules/sessions/controller";
 
 const router = Router();
 
-router.post("/", asyncHandler(McpController.handlePost));
-router.get("/", asyncHandler(McpController.handleGet));
-router.delete("/", asyncHandler(McpController.handleDelete));
+router.post("/", (req, res, next) =>
+  routeToSessionOrInitialize(req, res).catch(next),
+);
+router.get("/", (req, res, next) =>
+  retrieveAuthenticatedSession(req, res).catch(next),
+);
+router.delete("/", (req, res, next) =>
+  terminateAuthenticatedSession(req, res).catch(next),
+);
 
-export const mcpRouter = router;
+export default router;

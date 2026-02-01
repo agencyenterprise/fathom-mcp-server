@@ -1,165 +1,259 @@
 import { createHash, randomUUID } from "crypto";
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull, lt, or } from "drizzle-orm";
 import {
-  accessTokens,
-  authorizationCodes,
   db,
-  oauthClients,
-  oauthStates,
+  fathomOAuthTokens,
+  mcpServerAccessTokens,
+  mcpServerAuthorizationCodes,
+  mcpServerOAuthClients,
+  mcpServerOAuthStates,
 } from "../../db";
-import type { CreateOAuthStateParamsType } from "./schema";
+import {
+  MCP_SERVER_ACCESS_TOKEN_TTL_MS,
+  MCP_SERVER_AUTH_CODE_TTL_MS,
+  MCP_SERVER_DEFAULT_SCOPE,
+  MCP_SERVER_OAUTH_STATE_TTL_MS,
+  STALE_SESSION_CUTOFF_MS,
+} from "../../shared/constants";
+import { encrypt } from "../../utils/crypto";
+import type { FathomTokenResType } from "./schema";
 
-export class OAuthService {
-  static async registerClient(
-    redirectUris: string[],
-    clientName?: string,
-  ): Promise<{ clientId: string; clientSecret?: string }> {
-    const clientId = randomUUID();
+export async function insertMcpServerOAuthClient(
+  redirectUris: string[],
+  clientName?: string,
+): Promise<{ clientId: string }> {
+  const clientId = randomUUID();
+  await db.insert(mcpServerOAuthClients).values({
+    clientId,
+    clientName,
+    redirectUris,
+  });
+  return { clientId };
+}
 
-    await db.insert(oauthClients).values({
-      clientId,
-      clientName,
-      redirectUris,
-    });
+export async function findMcpServerOAuthClient(clientId: string) {
+  const result = await db
+    .select()
+    .from(mcpServerOAuthClients)
+    .where(eq(mcpServerOAuthClients.clientId, clientId))
+    .limit(1);
 
-    return { clientId };
-  }
+  return result[0] ?? null;
+}
 
-  static async getClient(clientId: string) {
-    const result = await db
+export async function createMcpServerOAuthState(
+  clientId: string,
+  redirectUri: string,
+  state: string,
+  codeChallenge?: string,
+  codeChallengeMethod?: string,
+): Promise<string> {
+  const mcpServerOAuthState = randomUUID();
+  const expiresAt = new Date(Date.now() + MCP_SERVER_OAUTH_STATE_TTL_MS);
+
+  await db.insert(mcpServerOAuthStates).values({
+    state: mcpServerOAuthState,
+    clientId: clientId,
+    clientRedirectUri: redirectUri,
+    clientState: state,
+    clientCodeChallenge: codeChallenge,
+    clientCodeChallengeMethod: codeChallengeMethod,
+    expiresAt,
+  });
+
+  return mcpServerOAuthState;
+}
+
+export async function getMcpServerOAuthState(state: string) {
+  const result = await db
+    .select()
+    .from(mcpServerOAuthStates)
+    .where(
+      and(
+        eq(mcpServerOAuthStates.state, state),
+        gt(mcpServerOAuthStates.expiresAt, new Date()),
+      ),
+    )
+    .limit(1);
+
+  return result[0] ?? null;
+}
+
+export async function deleteMcpServerOAuthState(state: string): Promise<void> {
+  await db
+    .delete(mcpServerOAuthStates)
+    .where(eq(mcpServerOAuthStates.state, state));
+}
+
+export async function createMcpServerAuthorizationCode(
+  userId: string,
+  clientId: string,
+  clientRedirectUri: string,
+  clientCodeChallenge: string | null,
+  clientCodeChallengeMethod: string | null,
+  scope: string = MCP_SERVER_DEFAULT_SCOPE,
+): Promise<string> {
+  const code = randomUUID();
+  const expiresAt = new Date(Date.now() + MCP_SERVER_AUTH_CODE_TTL_MS);
+
+  await db.insert(mcpServerAuthorizationCodes).values({
+    code,
+    userId,
+    clientId,
+    clientRedirectUri,
+    clientCodeChallenge,
+    clientCodeChallengeMethod,
+    scope,
+    expiresAt,
+  });
+
+  return code;
+}
+
+export async function consumeMcpServerAuthorizationCode(code: string) {
+  return await db.transaction(async (tx) => {
+    const authorizationCodeRecords = await tx
       .select()
-      .from(oauthClients)
-      .where(eq(oauthClients.clientId, clientId))
-      .limit(1);
-
-    return result[0] ?? null;
-  }
-
-  static async createOAuthState(
-    params: CreateOAuthStateParamsType,
-  ): Promise<string> {
-    const state = randomUUID();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-    await db.insert(oauthStates).values({
-      state,
-      clientId: params.clientId,
-      claudeRedirectUri: params.redirectUri,
-      claudeState: params.state,
-      claudeCodeChallenge: params.codeChallenge,
-      claudeCodeChallengeMethod: params.codeChallengeMethod,
-      expiresAt,
-    });
-
-    return state;
-  }
-
-  static async getValidOAuthState(state: string) {
-    const result = await db
-      .select()
-      .from(oauthStates)
+      .from(mcpServerAuthorizationCodes)
       .where(
         and(
-          eq(oauthStates.state, state),
-          gt(oauthStates.expiresAt, new Date()),
+          eq(mcpServerAuthorizationCodes.code, code),
+          gt(mcpServerAuthorizationCodes.expiresAt, new Date()),
+          isNull(mcpServerAuthorizationCodes.used),
         ),
       )
       .limit(1);
 
-    return result[0] ?? null;
-  }
+    const authorizationCodeRecord = authorizationCodeRecords[0];
+    if (!authorizationCodeRecord) return null;
 
-  static async deleteOAuthState(state: string): Promise<void> {
-    await db.delete(oauthStates).where(eq(oauthStates.state, state));
-  }
-
-  static async createAuthorizationCode(
-    userId: string,
-    clientId: string,
-    claudeRedirectUri: string,
-    claudeCodeChallenge: string | null,
-    claudeCodeChallengeMethod: string | null,
-    scope: string = "fathom:read",
-  ): Promise<string> {
-    const code = randomUUID();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-
-    await db.insert(authorizationCodes).values({
-      code,
-      userId,
-      clientId,
-      claudeRedirectUri,
-      claudeCodeChallenge,
-      claudeCodeChallengeMethod,
-      scope,
-      expiresAt,
-    });
-
-    return code;
-  }
-
-  static async getValidAuthorizationCode(code: string) {
-    const result = await db
-      .select()
-      .from(authorizationCodes)
-      .where(
-        and(
-          eq(authorizationCodes.code, code),
-          gt(authorizationCodes.expiresAt, new Date()),
-        ),
-      )
-      .limit(1);
-
-    return result[0] ?? null;
-  }
-
-  static async markAuthorizationCodeUsed(code: string): Promise<void> {
-    await db
-      .update(authorizationCodes)
+    await tx
+      .update(mcpServerAuthorizationCodes)
       .set({ used: new Date() })
-      .where(eq(authorizationCodes.code, code));
-  }
+      .where(eq(mcpServerAuthorizationCodes.code, code));
 
-  static async createAccessToken(
-    userId: string,
-    scope: string,
-  ): Promise<string> {
-    const token = randomUUID();
+    return authorizationCodeRecord;
+  });
+}
 
-    await db.insert(accessTokens).values({
-      token,
+export async function createMcpServerAccessToken(
+  userId: string,
+  scope: string,
+): Promise<string> {
+  const token = randomUUID();
+  const expiresAt = new Date(Date.now() + MCP_SERVER_ACCESS_TOKEN_TTL_MS);
+
+  await db.insert(mcpServerAccessTokens).values({
+    token,
+    userId,
+    scope,
+    expiresAt,
+  });
+
+  return token;
+}
+
+export async function getMcpServerAccessToken(token: string) {
+  const accessTokenRecords = await db
+    .select()
+    .from(mcpServerAccessTokens)
+    .where(
+      and(
+        eq(mcpServerAccessTokens.token, token),
+        gt(mcpServerAccessTokens.expiresAt, new Date()),
+      ),
+    )
+    .limit(1);
+
+  return accessTokenRecords[0] ?? null;
+}
+
+export async function insertFathomToken(
+  userId: string,
+  token: FathomTokenResType,
+): Promise<void> {
+  const expiresAt = new Date(Date.now() + token.expires_in * 1000);
+  const encryptedAccessToken = encrypt(token.access_token);
+  const encryptedRefreshToken = encrypt(token.refresh_token);
+
+  await db
+    .insert(fathomOAuthTokens)
+    .values({
       userId,
-      scope,
+      accessToken: encryptedAccessToken,
+      refreshToken: encryptedRefreshToken,
+      expiresAt,
+    })
+    .onConflictDoUpdate({
+      target: fathomOAuthTokens.userId,
+      set: {
+        accessToken: encryptedAccessToken,
+        refreshToken: encryptedRefreshToken,
+        expiresAt,
+        updatedAt: new Date(),
+      },
     });
+}
 
-    return token;
-  }
+export async function getFathomOAuthToken(userId: string) {
+  const result = await db
+    .select()
+    .from(fathomOAuthTokens)
+    .where(eq(fathomOAuthTokens.userId, userId))
+    .limit(1);
 
-  static async getAccessToken(token: string) {
-    const result = await db
-      .select()
-      .from(accessTokens)
-      .where(eq(accessTokens.token, token))
-      .limit(1);
+  return result[0] ?? null;
+}
 
-    return result[0] ?? null;
-  }
-
-  static verifyPKCE(
-    codeVerifier: string,
-    codeChallenge: string,
-    codeChallengeMethod: string,
-  ): boolean {
-    let computedChallenge: string;
-
-    if (codeChallengeMethod === "S256") {
-      computedChallenge = createHash("sha256")
-        .update(codeVerifier)
-        .digest("base64url");
-    } else {
-      computedChallenge = codeVerifier;
-    }
-
+export function verifyMcpServerPKCE(
+  codeVerifier: string,
+  codeChallenge: string,
+  codeChallengeMethod: string,
+): boolean {
+  if (codeChallengeMethod === "S256") {
+    const computedChallenge = createHash("sha256")
+      .update(codeVerifier)
+      .digest("base64url");
     return computedChallenge === codeChallenge;
   }
+  return codeVerifier === codeChallenge;
+}
+
+export async function cleanupExpiredMcpServerOAuthData(): Promise<{
+  oauthStates: number;
+  authorizationCodes: number;
+  accessTokens: number;
+}> {
+  const now = new Date();
+  const staleUsedCodesCutoff = new Date(
+    now.getTime() - STALE_SESSION_CUTOFF_MS,
+  );
+
+  const [statesResult, codesResult, tokensResult] = await Promise.all([
+    db
+      .delete(mcpServerOAuthStates)
+      .where(lt(mcpServerOAuthStates.expiresAt, now)),
+
+    db
+      .delete(mcpServerAuthorizationCodes)
+      .where(
+        or(
+          lt(mcpServerAuthorizationCodes.expiresAt, now),
+          and(
+            isNotNull(mcpServerAuthorizationCodes.used),
+            lt(mcpServerAuthorizationCodes.used, staleUsedCodesCutoff),
+          ),
+        ),
+      ),
+
+    db
+      .delete(mcpServerAccessTokens)
+      .where(lt(mcpServerAccessTokens.expiresAt, now)),
+  ]);
+
+  return {
+    oauthStates: statesResult.rowCount ?? 0,
+    authorizationCodes: codesResult.rowCount ?? 0,
+    accessTokens: tokensResult.rowCount ?? 0,
+  };
 }

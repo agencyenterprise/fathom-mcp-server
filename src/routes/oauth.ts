@@ -1,15 +1,27 @@
 import { Router } from "express";
-import { asyncHandler } from "../middleware/error";
-import { OAuthController } from "../modules/oauth";
+import { oauthRateLimiter } from "../middleware/rateLimit";
+import {
+  authorizeClientAndRedirectToFathom,
+  completeFathomAuthAndRedirectClient,
+  exchangeCodeForMcpAccessToken,
+  registerMcpServerOAuthClient,
+} from "../modules/oauth/controller";
+import { renderOAuthSuccessPage } from "../modules/oauth/success-page";
 
 const router = Router();
 
-router.post("/register", asyncHandler(OAuthController.handleRegister));
-router.get("/authorize", asyncHandler(OAuthController.handleAuthorize));
-router.get(
-  "/fathom/callback",
-  asyncHandler(OAuthController.handleFathomCallback),
+router.post("/register", oauthRateLimiter, (req, res, next) =>
+  registerMcpServerOAuthClient(req, res).catch(next),
 );
-router.post("/token", asyncHandler(OAuthController.handleTokenExchange));
+router.get("/authorize", oauthRateLimiter, (req, res, next) =>
+  authorizeClientAndRedirectToFathom(req, res).catch(next),
+);
+router.get("/fathom/callback", (req, res, next) =>
+  completeFathomAuthAndRedirectClient(req, res).catch(next),
+);
+router.post("/token", oauthRateLimiter, (req, res, next) =>
+  exchangeCodeForMcpAccessToken(req, res).catch(next),
+);
+router.get("/success", oauthRateLimiter, renderOAuthSuccessPage);
 
-export const oauthRouter = router;
+export default router;

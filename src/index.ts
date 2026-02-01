@@ -1,32 +1,54 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import { config } from "./common/config";
-import { bearerAuthMiddleware, errorHandler } from "./middleware";
-import { routes } from "./routes";
+import { bearerAuthMiddleware } from "./middleware/auth";
+import { errorHandler } from "./middleware/error";
+import { logger, requestLogger } from "./middleware/logger";
+import { userRateLimiter } from "./middleware/rateLimit";
+import { SessionManager } from "./modules/sessions/manager";
+import {
+  docsRouter,
+  healthRouter,
+  mcpRouter,
+  oauthRouter,
+  wellKnownRouter,
+} from "./routes";
+import { config } from "./shared/config";
+import { GRACEFUL_SHUTDOWN_TIMEOUT_MS } from "./shared/constants";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+const publicPath = path.join(__dirname, "public");
+
 const app = express();
+
+const sessionManager = new SessionManager();
+app.locals.sessionManager = sessionManager;
+sessionManager.startCleanupScheduler();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "public")));
 
-app.use((req, _res, next) => {
-  console.log(`${req.method}  ${req.path}`);
-  next();
-});
+if (config.nodeEnv !== "production") {
+  app.use((_req, res, next) => {
+    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+    next();
+  });
+}
 
-app.use("/health", routes.health);
-app.use("/.well-known", routes.wellKnown);
-app.use("/oauth", routes.oauth);
-app.use("/mcp", bearerAuthMiddleware, routes.mcp);
+app.use(express.static(publicPath));
+app.use(requestLogger);
+
+app.use("/docs", docsRouter);
+app.use("/health", healthRouter);
+app.use("/.well-known", wellKnownRouter);
+app.use("/oauth", oauthRouter);
+app.use("/mcp", bearerAuthMiddleware, userRateLimiter, mcpRouter);
 
 app.get("/api", (_req, res) => {
   res.json({
     name: "fathom-mcp",
-    version: "1.0.0",
+    version: config.version,
     endpoints: {
       health: "/health",
       wellKnown: "/.well-known/oauth-protected-resource",
@@ -38,9 +60,33 @@ app.get("/api", (_req, res) => {
 
 app.use(errorHandler);
 
-app.listen(config.port, () => {
-  console.log(`Fathom MCP server running on port ${config.port}`);
-  console.log(`Environment: ${config.nodeEnv}`);
-  console.log(`Base URL: ${config.baseUrl}`);
-  console.log(`MCP endpoint: ${config.baseUrl}/mcp`);
+const server = app.listen(config.port, () => {
+  logger.info(
+    {
+      port: config.port,
+      env: config.nodeEnv,
+      baseUrl: config.baseUrl,
+      version: config.version,
+    },
+    "Fathom MCP server started",
+  );
 });
+
+async function shutdown(signal: string) {
+  logger.info({ signal }, "Shutdown signal received, closing server");
+
+  await sessionManager.shutdown();
+
+  server.close(() => {
+    logger.info("HTTP server closed");
+    process.exit(0);
+  });
+
+  setTimeout(() => {
+    logger.error("Forced shutdown after timeout");
+    process.exit(1);
+  }, GRACEFUL_SHUTDOWN_TIMEOUT_MS);
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

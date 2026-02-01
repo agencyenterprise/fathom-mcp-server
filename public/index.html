@@ -3,10 +3,77 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fathom MCP</title>
+    <title>Fathom MCP Server - Connect Claude to Your Meetings</title>
+    <meta
+      name="description"
+      content="Open source remote MCP server connecting Claude and AI assistants to Fathom meetings, transcripts, and summaries. Model Context Protocol integration for AI agents."
+    />
+    <meta
+      name="keywords"
+      content="fathom, mcp, model context protocol, mcp server, claude, ai assistant, ai agent, meetings, transcripts, summaries, mcp tools, mcp resources, remote mcp server, anthropic, ai integration"
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://www.fathom-mcp-server.com" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="Fathom MCP Server - Connect Claude to Your Meetings"
+    />
+    <meta
+      property="og:description"
+      content="Open source remote MCP server connecting Claude and AI assistants to Fathom meetings and transcripts."
+    />
+    <meta property="og:url" content="https://www.fathom-mcp-server.com" />
+    <meta
+      property="og:image"
+      content="https://www.fathom-mcp-server.com/logo.png"
+    />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta
+      name="twitter:title"
+      content="Fathom MCP - Connect Claude to Your Meetings"
+    />
+    <meta
+      name="twitter:description"
+      content="Open source remote MCP server connecting Claude and AI assistants to Fathom meetings and transcripts."
+    />
+
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/logo.png" />
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Fathom MCP Server",
+        "alternateName": "Fathom Model Context Protocol Server",
+        "description": "Connect Claude to your Fathom meetings, transcripts, and AI summaries. An open source MCP (Model Context Protocol) server.",
+        "url": "https://www.fathom-mcp-server.com",
+        "applicationCategory": "DeveloperApplication",
+        "applicationSubCategory": "AI Integration",
+        "keywords": "MCP, Model Context Protocol, MCP Server, MCP Tools, Claude, Fathom, AI assistant, AI agent, meetings, transcripts, remote MCP server, Anthropic",
+        "operatingSystem": "Any",
+        "license": "https://opensource.org/licenses/MIT",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "author": {
+          "@type": "Organization",
+          "name": "Agency Enterprise",
+          "url": "https://ae.studio"
+        },
+        "codeRepository": "https://github.com/agencyenterprise/fathom-mcp-server"
+      }
+    </script>
     <style>
       * {
         margin: 0;
@@ -21,28 +88,197 @@
         background: #0a0a0a;
         font-family:
           -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: #fff;
+        padding: 40px 20px;
       }
       main {
         text-align: center;
+        max-width: 500px;
       }
-      img {
+      img.logo {
         width: 80px;
         height: 80px;
         border-radius: 16px;
       }
       h1 {
         margin-top: 24px;
-        color: #fff;
-        font-size: 24px;
-        font-weight: 500;
+        font-size: 28px;
+        font-weight: 600;
         letter-spacing: -0.5px;
+      }
+      .tagline {
+        margin-top: 12px;
+        color: #888;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      .badges {
+        margin-top: 16px;
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .badge {
+        background: #1a1a1a;
+        border: 1px solid #333;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        color: #888;
+      }
+      .url-box {
+        margin-top: 32px;
+        background: #111;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 16px;
+      }
+      .url-label {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 8px;
+      }
+      .url-value {
+        font-family: "SF Mono", Monaco, monospace;
+        font-size: 13px;
+        color: #22c55e;
+        word-break: break-all;
+        user-select: all;
+      }
+      .tools {
+        margin-top: 32px;
+        text-align: left;
+      }
+      .tools h2 {
+        font-size: 14px;
+        font-weight: 500;
+        color: #666;
+        margin-bottom: 12px;
+        text-align: center;
+      }
+      .tools-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .tool {
+        background: #111;
+        border: 1px solid #222;
+        padding: 10px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+      }
+      .tool-name {
+        color: #fff;
+        font-weight: 500;
+      }
+      .tool-desc {
+        color: #666;
+        margin-top: 2px;
+      }
+      .links {
+        margin-top: 32px;
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+      }
+      .links a {
+        color: #888;
+        text-decoration: none;
+        font-size: 14px;
+        transition: color 0.2s;
+      }
+      .links a:hover {
+        color: #fff;
+      }
+      .footer {
+        margin-top: 40px;
+        font-size: 12px;
+        color: #444;
+      }
+      .footer a {
+        color: #555;
+        text-decoration: none;
+      }
+      .footer a:hover {
+        color: #888;
       }
     </style>
   </head>
   <body>
     <main>
-      <img src="/logo.png" alt="Fathom MCP" />
-      <h1>Fathom MCP</h1>
+      <img class="logo" src="/logo.png" alt="Fathom MCP Server" />
+      <h1>Fathom MCP Server</h1>
+      <p class="tagline">
+        Connect Claude to your Fathom meetings, transcripts, and AI summaries.
+      </p>
+      <div class="badges">
+        <span class="badge">Open Source</span>
+        <span class="badge">MIT License</span>
+        <span class="badge">MCP Compatible</span>
+      </div>
+
+      <div class="url-box">
+        <div class="url-label">Add to Claude Desktop</div>
+        <div class="url-value">https://www.fathom-mcp-server.com/mcp</div>
+      </div>
+
+      <div class="tools">
+        <h2>Available Tools</h2>
+        <div class="tools-grid">
+          <div class="tool">
+            <div class="tool-name">list_meetings</div>
+            <div class="tool-desc">
+              List meetings with filters (date, team, recorder, etc.)
+            </div>
+          </div>
+          <div class="tool">
+            <div class="tool-name">search_meetings</div>
+            <div class="tool-desc">
+              Search meetings by title with optional filters
+            </div>
+          </div>
+          <div class="tool">
+            <div class="tool-name">get_transcript</div>
+            <div class="tool-desc">Get full transcript for a recording</div>
+          </div>
+          <div class="tool">
+            <div class="tool-name">get_summary</div>
+            <div class="tool-desc">
+              Get AI-generated summary for a recording
+            </div>
+          </div>
+          <div class="tool">
+            <div class="tool-name">list_teams</div>
+            <div class="tool-desc">List all accessible teams</div>
+          </div>
+          <div class="tool">
+            <div class="tool-name">list_team_members</div>
+            <div class="tool-desc">List members of a team</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="links">
+        <a
+          href="https://github.com/agencyenterprise/fathom-mcp-server"
+          target="_blank"
+          rel="noopener"
+          >GitHub</a
+        >
+        <a
+          href="https://github.com/agencyenterprise/fathom-mcp-server#get-started"
+          target="_blank"
+          rel="noopener"
+          >Get Started</a
+        >
+      </div>
+
+      <div class="footer">
+        Built by
+        <a href="https://ae.studio" target="_blank" rel="noopener">AE Studio</a>
+      </div>
     </main>
   </body>
 </html>

@@ -1,194 +1,280 @@
 import { randomUUID } from "crypto";
-import { Request, Response } from "express";
-import { AppError } from "../../middleware/error";
-import { FathomService } from "../fathom";
+import type { Request, Response } from "express";
+import { config } from "../../shared/config";
 import {
-  authorizeQuerySchema,
-  clientRegistrationBodySchema,
-  fathomCallbackQuerySchema,
-  tokenExchangeBodySchema,
+  FATHOM_API_SCOPE,
+  OAUTH_GRANT_TYPE_AUTH_CODE,
+  OAUTH_GRANT_TYPE_REFRESH,
+  OAUTH_RESPONSE_TYPE_CODE,
+} from "../../shared/constants";
+import { ErrorLogger } from "../../shared/errors";
+import { decrypt } from "../../utils/crypto";
+import type { FathomTokenResType } from "./schema";
+import {
+  authorizeClientAndRedirectToFathomReqSchema,
+  completeFathomAuthAndRedirectClientReqSchema,
+  exchangeCodeForMcpAccessTokenReqSchema,
+  fathomTokenResSchema,
+  registerMcpServerOAuthClientReqSchema,
 } from "./schema";
-import { OAuthService } from "./service";
+import {
+  consumeMcpServerAuthorizationCode,
+  createMcpServerAccessToken,
+  createMcpServerAuthorizationCode,
+  createMcpServerOAuthState,
+  deleteMcpServerOAuthState,
+  findMcpServerOAuthClient,
+  getFathomOAuthToken,
+  getMcpServerOAuthState,
+  insertFathomToken,
+  insertMcpServerOAuthClient,
+  verifyMcpServerPKCE,
+} from "./service";
 
-export class OAuthController {
-  static async handleRegister(req: Request, res: Response) {
-    const body = clientRegistrationBodySchema.parse(req.body);
+export async function registerMcpServerOAuthClient(
+  req: Request,
+  res: Response,
+) {
+  const { redirect_uris, client_name } =
+    registerMcpServerOAuthClientReqSchema.parse(req.body);
 
-    const { clientId } = await OAuthService.registerClient(
-      body.redirect_uris,
-      body.client_name,
-    );
+  const { clientId } = await insertMcpServerOAuthClient(
+    redirect_uris,
+    client_name,
+  );
 
-    res.status(201).json({
-      client_id: clientId,
-      client_id_issued_at: Math.floor(Date.now() / 1000),
-      redirect_uris: body.redirect_uris,
-      client_name: body.client_name,
-      token_endpoint_auth_method: "none",
-      grant_types: ["authorization_code"],
-      response_types: ["code"],
-    });
+  res.status(201).json({
+    client_id: clientId,
+    client_id_issued_at: Math.floor(Date.now() / 1000),
+    redirect_uris,
+    client_name,
+    token_endpoint_auth_method: "none",
+    grant_types: ["authorization_code"],
+    response_types: ["code"],
+  });
+}
+
+export async function authorizeClientAndRedirectToFathom(
+  req: Request,
+  res: Response,
+) {
+  const {
+    client_id,
+    redirect_uri,
+    state,
+    code_challenge,
+    code_challenge_method,
+  } = authorizeClientAndRedirectToFathomReqSchema.parse(req.query);
+
+  const mcpServerClient = await findMcpServerOAuthClient(client_id);
+  if (!mcpServerClient) {
+    throw ErrorLogger.oauth("invalid_client", "Unknown client_id");
   }
 
-  static async handleAuthorize(req: Request, res: Response) {
-    const {
-      client_id,
-      redirect_uri,
-      response_type,
-      state,
-      code_challenge,
-      code_challenge_method,
-    } = authorizeQuerySchema.parse(req.query);
-
-    if (response_type && response_type !== "code") {
-      throw new AppError(
-        400,
-        "unsupported_response_type",
-        "Only 'code' response type is supported",
-      );
-    }
-
-    const client = await OAuthService.getClient(client_id);
-    if (!client) {
-      throw new AppError(400, "invalid_client", "Unknown client_id");
-    }
-
-    if (!client.redirectUris.includes(redirect_uri)) {
-      throw new AppError(
-        400,
-        "invalid_redirect_uri",
-        "redirect_uri not registered for this client",
-      );
-    }
-
-    const internalState = await OAuthService.createOAuthState({
-      clientId: client_id,
-      redirectUri: redirect_uri,
-      state,
-      codeChallenge: code_challenge,
-      codeChallengeMethod: code_challenge_method,
-    });
-
-    const fathomAuthUrl = FathomService.getAuthorizationUrl(internalState);
-    res.redirect(fathomAuthUrl);
+  if (!mcpServerClient.redirectUris.includes(redirect_uri)) {
+    throw ErrorLogger.oauth(
+      "invalid_mcp_server_client_redirect_uri",
+      "mcp_server_client_redirect_uri not registered for this client",
+    );
   }
 
-  static async handleFathomCallback(req: Request, res: Response) {
-    const { code, state, error, error_description } =
-      fathomCallbackQuerySchema.parse(req.query);
+  const mcpServerOAuthState = await createMcpServerOAuthState(
+    client_id,
+    redirect_uri,
+    state,
+    code_challenge,
+    code_challenge_method,
+  );
 
-    if (error) {
-      throw new AppError(
-        400,
-        error,
-        error_description || "OAuth authorization failed",
-      );
-    }
+  const fathomOAuthAuthorizationUrl =
+    buildFathomOAuthAuthorizationUrl(mcpServerOAuthState);
+  res.redirect(fathomOAuthAuthorizationUrl);
+}
 
-    if (!code || !state) {
-      throw new AppError(
-        400,
-        "invalid_request",
-        "Missing code or state parameter",
-      );
-    }
+export async function completeFathomAuthAndRedirectClient(
+  req: Request,
+  res: Response,
+) {
+  const { code, state } = completeFathomAuthAndRedirectClientReqSchema.parse(
+    req.query,
+  );
+  const mcpServerOAuthState = await getMcpServerOAuthState(state);
 
-    const stateRecord = await OAuthService.getValidOAuthState(state);
-
-    if (!stateRecord) {
-      throw new AppError(
-        400,
-        "invalid_state",
-        "Invalid or expired state parameter",
-      );
-    }
-
-    const tokens = await FathomService.exchangeCodeForTokens(code);
-    const userId = randomUUID();
-    await FathomService.storeTokens(userId, tokens);
-
-    await OAuthService.deleteOAuthState(state);
-
-    const authCode = await OAuthService.createAuthorizationCode(
-      userId,
-      stateRecord.clientId,
-      stateRecord.claudeRedirectUri,
-      stateRecord.claudeCodeChallenge,
-      stateRecord.claudeCodeChallengeMethod,
+  if (!mcpServerOAuthState) {
+    throw ErrorLogger.oauth(
+      "invalid_mcp_server_state",
+      "Invalid or expired MCP Server state parameter",
     );
-
-    const redirectUrl = new URL(stateRecord.claudeRedirectUri);
-    redirectUrl.searchParams.set("code", authCode);
-    redirectUrl.searchParams.set("state", stateRecord.claudeState);
-
-    res.redirect(redirectUrl.toString());
   }
 
-  static async handleTokenExchange(req: Request, res: Response) {
-    const { grant_type, code, code_verifier } = tokenExchangeBodySchema.parse(
-      req.body,
-    );
+  const {
+    clientId,
+    clientRedirectUri,
+    clientCodeChallenge,
+    clientCodeChallengeMethod,
+    clientState,
+  } = mcpServerOAuthState;
 
-    if (grant_type !== "authorization_code") {
-      throw new AppError(
-        400,
-        "unsupported_grant_type",
-        "Only 'authorization_code' grant type is supported",
-      );
+  const token = await exchangeCodeForFathomToken(code);
+  const userId = randomUUID();
+  await insertFathomToken(userId, token);
+
+  await deleteMcpServerOAuthState(state);
+
+  const mcpServerAuthorizationCode = await createMcpServerAuthorizationCode(
+    userId,
+    clientId,
+    clientRedirectUri,
+    clientCodeChallenge,
+    clientCodeChallengeMethod,
+  );
+
+  const clientRedirectUrl = buildMcpServerOAuthRedirectUrl(
+    clientRedirectUri,
+    mcpServerAuthorizationCode,
+    clientState,
+  );
+  res.redirect(clientRedirectUrl);
+}
+
+export async function exchangeCodeForMcpAccessToken(
+  req: Request,
+  res: Response,
+) {
+  const { code, code_verifier } = exchangeCodeForMcpAccessTokenReqSchema.parse(
+    req.body,
+  );
+
+  const authorizationCodeRecord = await consumeMcpServerAuthorizationCode(code);
+  if (!authorizationCodeRecord) {
+    throw ErrorLogger.oauth(
+      "invalid_grant",
+      "Invalid, expired, or already used authorization code",
+    );
+  }
+  const { clientCodeChallenge, clientCodeChallengeMethod, userId, scope } =
+    authorizationCodeRecord;
+
+  if (clientCodeChallenge && clientCodeChallengeMethod) {
+    if (!code_verifier) {
+      throw ErrorLogger.validation("Missing code_verifier for MCP Server PKCE");
     }
 
-    const codeRecord = await OAuthService.getValidAuthorizationCode(code);
+    const isValid = verifyMcpServerPKCE(
+      code_verifier,
+      clientCodeChallenge,
+      clientCodeChallengeMethod,
+    );
 
-    if (!codeRecord) {
-      throw new AppError(
-        400,
+    if (!isValid) {
+      throw ErrorLogger.oauth(
         "invalid_grant",
-        "Invalid or expired authorization code",
+        "Invalid code_verifier for MCP Server PKCE",
       );
     }
-
-    if (codeRecord.used) {
-      throw new AppError(
-        400,
-        "invalid_grant",
-        "Authorization code has already been used",
-      );
-    }
-
-    if (
-      codeRecord.claudeCodeChallenge &&
-      codeRecord.claudeCodeChallengeMethod
-    ) {
-      if (!code_verifier) {
-        throw new AppError(
-          400,
-          "invalid_request",
-          "Missing code_verifier for PKCE",
-        );
-      }
-
-      const isValid = OAuthService.verifyPKCE(
-        code_verifier,
-        codeRecord.claudeCodeChallenge,
-        codeRecord.claudeCodeChallengeMethod,
-      );
-
-      if (!isValid) {
-        throw new AppError(400, "invalid_grant", "Invalid code_verifier");
-      }
-    }
-
-    await OAuthService.markAuthorizationCodeUsed(code);
-
-    const token = await OAuthService.createAccessToken(
-      codeRecord.userId,
-      codeRecord.scope,
-    );
-
-    res.json({
-      access_token: token,
-      token_type: "Bearer",
-      scope: codeRecord.scope,
-    });
   }
+
+  const mcpServerAccessToken = await createMcpServerAccessToken(userId, scope);
+
+  res.json({
+    access_token: mcpServerAccessToken,
+    token_type: "Bearer",
+    scope,
+  });
+}
+
+export async function fetchFathomOAuthToken(
+  userId: string,
+): Promise<string | null> {
+  const stored = await getFathomOAuthToken(userId);
+
+  if (!stored) {
+    return null;
+  }
+
+  const decryptedAccessToken = decrypt(stored.accessToken);
+
+  if (stored.expiresAt > new Date()) {
+    return decryptedAccessToken;
+  }
+
+  const decryptedRefreshToken = decrypt(stored.refreshToken);
+  const refreshed = await refreshFathomToken(decryptedRefreshToken);
+  await insertFathomToken(userId, refreshed);
+  return refreshed.access_token;
+}
+
+export async function exchangeCodeForFathomToken(
+  code: string,
+): Promise<FathomTokenResType> {
+  const oauthUrl = `${config.fathom.oauthBaseUrl}/external/v1/oauth2/token`;
+  const response = await fetch(oauthUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: OAUTH_GRANT_TYPE_AUTH_CODE,
+      code,
+      client_id: config.fathom.clientId,
+      client_secret: config.fathom.clientSecret,
+      redirect_uri: config.fathom.redirectUrl,
+    }),
+  });
+
+  if (!response.ok) {
+    throw ErrorLogger.fathomApi("Failed to exchange authorization code");
+  }
+
+  const data = await response.json();
+  return fathomTokenResSchema.parse(data);
+}
+
+export async function refreshFathomToken(
+  refreshToken: string,
+): Promise<FathomTokenResType> {
+  const oauthUrl = `${config.fathom.oauthBaseUrl}/external/v1/oauth2/token`;
+  const response = await fetch(oauthUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: OAUTH_GRANT_TYPE_REFRESH,
+      refresh_token: refreshToken,
+      client_id: config.fathom.clientId,
+      client_secret: config.fathom.clientSecret,
+    }),
+  });
+
+  if (!response.ok) {
+    throw ErrorLogger.fathomApi(
+      "Fathom session expired or was revoked. Please reconnect via Claude Settings > Connectors.",
+    );
+  }
+
+  const data = await response.json();
+  return fathomTokenResSchema.parse(data);
+}
+
+export function buildFathomOAuthAuthorizationUrl(state: string): string {
+  const params = new URLSearchParams({
+    client_id: config.fathom.clientId,
+    redirect_uri: config.fathom.redirectUrl,
+    response_type: OAUTH_RESPONSE_TYPE_CODE,
+    scope: FATHOM_API_SCOPE,
+    state,
+  });
+  return `${config.fathom.oauthBaseUrl}/external/v1/oauth2/authorize?${params}`;
+}
+
+function buildMcpServerOAuthRedirectUrl(
+  clientRedirectUri: string,
+  mcpServerAuthorizationCode: string,
+  clientState: string,
+): string {
+  const mcpServerOAuthRedirectUrl = new URL(clientRedirectUri);
+  mcpServerOAuthRedirectUrl.searchParams.set(
+    "code",
+    mcpServerAuthorizationCode,
+  );
+  mcpServerOAuthRedirectUrl.searchParams.set("state", clientState);
+
+  return `/oauth/success?redirect=${encodeURIComponent(mcpServerOAuthRedirectUrl.toString())}`;
 }
