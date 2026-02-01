@@ -37,7 +37,7 @@ This connects to your Railway database and creates the required tables.
 
 ## Code Style
 
-- Run `npm run lint` before committing
+- Run `npm run ci` before committing (runs lint, typecheck, and build)
 - Run `npm run format` to auto-format with Prettier
 - Follow existing patterns in the codebase
 
@@ -61,7 +61,7 @@ src/
 
 1. Create a feature branch from `main`
 2. Make your changes
-3. Ensure `npm run lint` passes
+3. Run `npm run ci` to ensure all checks pass
 4. Submit a PR with a clear description of what changed and why
 
 ## Reporting Issues
