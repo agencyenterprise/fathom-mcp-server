@@ -30,3 +30,6 @@ drizzle/meta/
 
 # Test coverage
 coverage/
+
+# MCP Registry
+.mcpregistry_*
