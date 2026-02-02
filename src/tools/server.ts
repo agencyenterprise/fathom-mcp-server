@@ -53,6 +53,7 @@ export class ToolServer {
           "calendar_invitees_domains_type (all/only_internal/one_or_more_external), " +
           "teams (team names), recorded_by (recorder emails), include_action_items (boolean), include_crm_matches (boolean)",
         inputSchema: listMeetingsReqSchema.shape,
+        annotations: { readOnlyHint: true },
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
@@ -70,6 +71,7 @@ export class ToolServer {
           "calendar_invitees_domains, calendar_invitees_domains_type, teams, recorded_by, " +
           "include_action_items (boolean), include_crm_matches (boolean)",
         inputSchema: searchMeetingsReqSchema.shape,
+        annotations: { readOnlyHint: true },
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
@@ -83,6 +85,7 @@ export class ToolServer {
         title: "Get Transcript",
         description: "Get the full transcript for a specific meeting recording",
         inputSchema: recordingReqSchema.shape,
+        annotations: { readOnlyHint: true },
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
@@ -96,6 +99,7 @@ export class ToolServer {
         title: "Get Summary",
         description: "Get the AI-generated summary for a meeting recording",
         inputSchema: recordingReqSchema.shape,
+        annotations: { readOnlyHint: true },
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
@@ -110,6 +114,7 @@ export class ToolServer {
         description:
           "List all Fathom teams you have access to. Optional: cursor for pagination.",
         inputSchema: listTeamsReqSchema.shape,
+        annotations: { readOnlyHint: true },
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
@@ -124,6 +129,7 @@ export class ToolServer {
         description:
           "List members of a Fathom team. Optional: team to filter by team name, cursor for pagination.",
         inputSchema: listTeamMembersReqSchema.shape,
+        annotations: { readOnlyHint: true },
       },
       async (args, extra) => {
         const userId = this.getUserId(extra);
