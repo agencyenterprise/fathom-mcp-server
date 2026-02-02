@@ -21,13 +21,24 @@ Fathom OAuth apps require HTTPS redirect URIs, so you'll need to deploy to test 
 
 ### 3. Initialize Database Schema
 
-After adding a PostgreSQL database to your Railway project (step 1.3) and copying `DATABASE_URL` to your local `.env`, create the tables:
+After adding a PostgreSQL database to your Railway project (step 1.3) and copying `DATABASE_URL` to your local `.env`:
 
 ```bash
-npm run db:push
+npm run db:migrate
 ```
 
 This connects to your Railway database and creates the required tables.
+
+### Making Database Schema Changes
+
+If your PR modifies `src/db/schema.ts`:
+
+1. Make your schema changes
+2. Run `npm run db:generate` to create a migration file
+3. Run `npm run db:migrate` to apply it to your Railway database
+4. Commit both the schema change and the new migration file in `drizzle/migrations/`
+
+> **Note**: After your PR is merged, a maintainer will run migrations against staging/production. This may change in the future.
 
 ### 4. Test Your Changes
 
@@ -59,10 +70,13 @@ src/
 
 ## Pull Requests
 
-1. Create a feature branch from `main`
+1. Create a feature branch from `staging`
 2. Make your changes
 3. Run `npm run ci` to ensure all checks pass
-4. Submit a PR with a clear description of what changed and why
+4. Open a PR **targeting the `staging` branch** (not `main`)
+5. Include a clear description of what changed and why
+
+> **Important**: All PRs should be opened against `staging`. The `main` branch is reserved for production releases.
 
 ## Reporting Issues
 

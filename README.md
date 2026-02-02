@@ -138,13 +138,13 @@ Set these in your hosting provider's dashboard (as well as your local .env file 
 Run migrations after first deploy:
 
 ```bash
-npm run db:push
+npm run db:migrate
 ```
 
 Or via Railway CLI:
 
 ```bash
-railway run npm run db:push
+railway run npm run db:migrate
 ```
 
 ### 5. Connect Claude
@@ -189,6 +189,10 @@ https://developers.fathom.ai/llms.txt
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+
+## Releasing
+
+See [RELEASING.md](RELEASING.md) for version and release instructions.
 
 ## License
 
