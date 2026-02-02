@@ -7,6 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-purple.svg)](https://modelcontextprotocol.io)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-Published-green.svg)](https://registry.modelcontextprotocol.io)
 
 [Get Started](#get-started) | [Available Tools](#available-tools) | [API Docs](https://www.fathom-mcp-server.com/docs) | [Self-Hosting](#self-hosting) | [Contributing](CONTRIBUTING.md)
 
@@ -17,6 +18,8 @@
 ---
 
 ## Get Started
+
+This server is published to the [MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.agencyenterprise/fathom-mcp-server`.
 
 Connect in under 60 seconds:
 
@@ -73,6 +76,8 @@ See the [Fathom MCP Server documentation](https://www.fathom-mcp-server.com/docs
 - **Pass-through architecture**: This server acts as a secure proxy, your Fathom data flows directly from Fathom to Claude without being stored, cached, or logged
 - **Encryption at rest**: The only stored data (OAuth tokens) is encrypted using AES-256-GCM before being written to the database
 - **HTTPS only**: All communication between Claude, this server, and Fathom is encrypted in transit
+
+See our full [Privacy Policy](PRIVACY.md) for details on data collection, usage, and your rights.
 
 ## Permissions
 
