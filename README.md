@@ -187,6 +187,10 @@ See [RELEASING.md](RELEASING.md) for version and release instructions.
 ## Future Development Plans
 
 - **Transcript vectorization** — Enable vectorization of large transcripts so LLMs can parse and understand them more efficiently. Would be implemented as a stateless worker to ensure no user data is persisted.
+- **Action item aggregation** — Aggregate action items across meetings with filters. "Show all my incomplete action items from this week."
+- **Meeting analytics** — Calculate stats like total meeting time, meeting frequency, and top attendees.
+- **Speaker time analysis** — Analyze transcripts to show who spoke most in a meeting.
+- **Meeting comparison** — Compare two meeting summaries to highlight what changed over time.
 
 Contributions toward these goals are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
