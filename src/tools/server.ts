@@ -65,7 +65,7 @@ export class ToolServer {
       {
         title: "Search Meetings",
         description:
-          "Search Fathom meetings by title. Required: query (search term). " +
+          "Search Fathom meetings by title or meeting_title. Required: query (search term). " +
           "Optional filters: cursor (pagination), created_after, created_before (ISO timestamps), " +
           "calendar_invitees_domains, calendar_invitees_domains_type, teams, recorded_by, " +
           "include_action_items (boolean), include_crm_matches (boolean)",

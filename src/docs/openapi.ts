@@ -43,7 +43,7 @@ export const openapiDocument: oas31.OpenAPIObject = createDocument({
         operationId: "search_meetings",
         summary: "Search Meetings",
         description:
-          "Search Fathom meetings by title. This is an MCP-native tool that " +
+          "Search Fathom meetings by title or meeting_title. This is an MCP-native tool that " +
           "performs client-side filtering since Fathom's API doesn't provide a search endpoint. " +
           "For users with many meetings, consider using list_meetings with date filters for better performance.",
         tags: ["Custom MCP Tools"],
