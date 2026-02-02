@@ -2,7 +2,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { randomUUID } from "crypto";
 import { logger } from "../../middleware/logger";
 import { SESSION_CLEANUP_INTERVAL_MS } from "../../shared/constants";
-import { ErrorLogger } from "../../shared/errors";
+import { AppError } from "../../shared/errors";
 import { ToolServer } from "../../tools/server";
 import { cleanupExpiredMcpServerOAuthData } from "../oauth/service";
 import {
@@ -117,7 +117,7 @@ export class SessionManager {
     try {
       await markSessionTerminated(sessionId);
     } catch {
-      throw ErrorLogger.server("Failed to terminate session");
+      throw AppError.server("Failed to terminate session");
     }
   }
 
@@ -127,7 +127,7 @@ export class SessionManager {
     try {
       await this.persistTermination(sessionId);
     } catch {
-      // Error already thrown as ErrorLogger.server, can't propagate from SDK callback
+      // Error already thrown as AppError.server, can't propagate from SDK callback
     }
     this.activeTransports.delete(sessionId);
   }

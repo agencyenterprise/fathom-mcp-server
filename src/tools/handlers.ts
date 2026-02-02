@@ -1,7 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ZodError } from "zod";
 import { FathomAPIClient } from "../modules/fathom/api";
-import { ErrorLogger } from "../shared/errors";
+import { AppError } from "../shared/errors";
 import {
   listMeetingsReqSchema,
   listTeamMembersReqSchema,
@@ -11,7 +11,7 @@ import {
 } from "../shared/schemas";
 
 function formatToolError(error: unknown): string {
-  if (error instanceof ErrorLogger) {
+  if (error instanceof AppError) {
     return error.message;
   }
   if (error instanceof ZodError) {
@@ -120,7 +120,6 @@ export async function searchMeetings(
   args: unknown,
 ): Promise<CallToolResult> {
   try {
-    // note for zod schema this seraches title and meeting title
     const input = searchMeetingsReqSchema.parse(args);
     const service = await FathomAPIClient.createAuthorizedService(userId);
     const data = await service.listMeetings(input);

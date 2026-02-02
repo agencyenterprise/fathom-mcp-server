@@ -1,3 +1,4 @@
+import type { InferSelectModel } from "drizzle-orm";
 import {
   index,
   json,
@@ -97,3 +98,10 @@ export const mcpSessions = pgTable(
     index("mcp_sessions_terminated_at_idx").on(table.terminatedAt),
   ],
 );
+
+export type FathomOAuthToken = InferSelectModel<typeof fathomOAuthTokens>;
+export type McpServerOAuthState = InferSelectModel<typeof mcpServerOAuthStates>;
+export type McpServerAccessToken = InferSelectModel<typeof mcpServerAccessTokens>;
+export type McpServerAuthorizationCode = InferSelectModel<typeof mcpServerAuthorizationCodes>;
+export type McpServerOAuthClient = InferSelectModel<typeof mcpServerOAuthClients>;
+export type McpSession = InferSelectModel<typeof mcpSessions>;

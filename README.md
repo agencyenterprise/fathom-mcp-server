@@ -41,27 +41,16 @@ That's it. Ask Claude about your meetings.
 | `search_meetings`   | Search meetings by title with optional filters          | [MCP Custom](#custom-mcp-tools)                                                         |
 | `get_transcript`    | Get full transcript for a recording                     | [Fathom API](https://developers.fathom.ai/api-reference/recordings/get-transcript)      |
 | `get_summary`       | Get AI-generated summary for a recording                | [Fathom API](https://developers.fathom.ai/api-reference/recordings/get-summary)         |
-| `list_teams`        | List all accessible teams                               | [Fathom API](https://developers.fathom.ai/sdks/available-methods)                       |
+| `list_teams`        | List all accessible teams                               | [Fathom API](https://developers.fathom.ai/api-reference/teams/list-teams)               |
 | `list_team_members` | List members of a team                                  | [Fathom API](https://developers.fathom.ai/api-reference/team-members/list-team-members) |
 
 ### Custom MCP Tools
 
-Tools marked as **MCP Custom** are built specifically for this server and don't exist in the Fathom API. See the [/docs](https://www.fathom-mcp-server.com/docs) page for full parameter documentation.
-
 #### `search_meetings`
 
-Search meetings by title. This is an MCP-native tool that performs client-side filtering since Fathom's API doesn't provide a search endpoint.
+Search Fathom meetings by title or meeting_title. This is an MCP-native tool that performs client-side filtering since Fathom's API doesn't provide a search endpoint. For users with many meetings, use `list_meetings` with date filters for better performance.
 
-| Parameter                        | Type     | Required | Description                                        |
-| -------------------------------- | -------- | -------- | -------------------------------------------------- |
-| `query`                          | string   | ✓        | Search term to match against meeting titles        |
-| `limit`                          | number   |          | Max results to return (1-100)                      |
-| `created_after`                  | string   |          | ISO datetime - only meetings created after this    |
-| `created_before`                 | string   |          | ISO datetime - only meetings created before this   |
-| `calendar_invitees_domains`      | string[] |          | Filter by attendee company domains                 |
-| `calendar_invitees_domains_type` | enum     |          | `all` \| `only_internal` \| `one_or_more_external` |
-| `teams`                          | string[] |          | Filter by team names                               |
-| `recorded_by`                    | string[] |          | Filter by recorder email addresses                 |
+See the [Fathom MCP Server documentation](https://www.fathom-mcp-server.com/docs) for full request and response parameters.
 
 ### Example Usage in Claude
 
@@ -94,6 +83,7 @@ The Fathom API itself only provides read access via its `public_api` scope. Writ
 ## Limitations
 
 - `search_meetings` performs client-side filtering since Fathom's API doesn't provide a search endpoint. For users with many meetings, use `list_meetings` with date filters instead.
+- You can always ask the LLM what query params are avaialable.
 
 ## Self-Hosting
 
@@ -138,13 +128,13 @@ Set these in your hosting provider's dashboard (as well as your local .env file 
 Run migrations after first deploy:
 
 ```bash
-npm run db:push
+npm run db:migrate
 ```
 
 Or via Railway CLI:
 
 ```bash
-railway run npm run db:push
+railway run npm run db:migrate
 ```
 
 ### 5. Connect Claude
@@ -189,6 +179,21 @@ https://developers.fathom.ai/llms.txt
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+
+## Releasing
+
+See [RELEASING.md](RELEASING.md) for version and release instructions.
+
+## Future Development Plans
+
+- **Transcript vectorization** — Enable vectorization of large transcripts so LLMs can parse and understand them more efficiently. Would be implemented as a stateless worker to ensure no user data is persisted.
+- **Action item aggregation** — Aggregate action items across meetings with filters. "Show all my incomplete action items from this week."
+- **Meeting analytics** — Calculate stats like total meeting time, meeting frequency, and top attendees.
+- **Speaker time analysis** — Analyze transcripts to show who spoke most in a meeting.
+- **Meeting comparison** — Compare two meeting summaries to highlight what changed over time.
+- **Fathom API changelog monitoring** — Automated detection of Fathom API changes via GitHub Action that periodically checks their API reference and creates an issue if changes are detected.
+
+Contributions toward these goals are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

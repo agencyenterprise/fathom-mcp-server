@@ -7,7 +7,7 @@ import {
   OAUTH_GRANT_TYPE_REFRESH,
   OAUTH_RESPONSE_TYPE_CODE,
 } from "../../shared/constants";
-import { ErrorLogger } from "../../shared/errors";
+import { AppError } from "../../shared/errors";
 import { decrypt } from "../../utils/crypto";
 import type { FathomTokenResType } from "./schema";
 import {
@@ -68,11 +68,11 @@ export async function authorizeClientAndRedirectToFathom(
 
   const mcpServerClient = await findMcpServerOAuthClient(client_id);
   if (!mcpServerClient) {
-    throw ErrorLogger.oauth("invalid_client", "Unknown client_id");
+    throw AppError.oauth("invalid_client", "Unknown client_id");
   }
 
   if (!mcpServerClient.redirectUris.includes(redirect_uri)) {
-    throw ErrorLogger.oauth(
+    throw AppError.oauth(
       "invalid_mcp_server_client_redirect_uri",
       "mcp_server_client_redirect_uri not registered for this client",
     );
@@ -101,7 +101,7 @@ export async function completeFathomAuthAndRedirectClient(
   const mcpServerOAuthState = await getMcpServerOAuthState(state);
 
   if (!mcpServerOAuthState) {
-    throw ErrorLogger.oauth(
+    throw AppError.oauth(
       "invalid_mcp_server_state",
       "Invalid or expired MCP Server state parameter",
     );
@@ -147,7 +147,7 @@ export async function exchangeCodeForMcpAccessToken(
 
   const authorizationCodeRecord = await consumeMcpServerAuthorizationCode(code);
   if (!authorizationCodeRecord) {
-    throw ErrorLogger.oauth(
+    throw AppError.oauth(
       "invalid_grant",
       "Invalid, expired, or already used authorization code",
     );
@@ -157,7 +157,7 @@ export async function exchangeCodeForMcpAccessToken(
 
   if (clientCodeChallenge && clientCodeChallengeMethod) {
     if (!code_verifier) {
-      throw ErrorLogger.validation("Missing code_verifier for MCP Server PKCE");
+      throw AppError.validation("Missing code_verifier for MCP Server PKCE");
     }
 
     const isValid = verifyMcpServerPKCE(
@@ -167,7 +167,7 @@ export async function exchangeCodeForMcpAccessToken(
     );
 
     if (!isValid) {
-      throw ErrorLogger.oauth(
+      throw AppError.oauth(
         "invalid_grant",
         "Invalid code_verifier for MCP Server PKCE",
       );
@@ -221,7 +221,7 @@ export async function exchangeCodeForFathomToken(
   });
 
   if (!response.ok) {
-    throw ErrorLogger.fathomApi("Failed to exchange authorization code");
+    throw AppError.fathomApi("Failed to exchange authorization code");
   }
 
   const data = await response.json();
@@ -244,7 +244,7 @@ export async function refreshFathomToken(
   });
 
   if (!response.ok) {
-    throw ErrorLogger.fathomApi(
+    throw AppError.fathomApi(
       "Fathom session expired or was revoked. Please reconnect via Claude Settings > Connectors.",
     );
   }

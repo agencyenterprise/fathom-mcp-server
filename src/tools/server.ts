@@ -5,7 +5,7 @@ import type {
   ServerRequest,
 } from "@modelcontextprotocol/sdk/types.js";
 import { config } from "../shared/config";
-import { ErrorLogger } from "../shared/errors";
+import { AppError } from "../shared/errors";
 import {
   listMeetingsReqSchema,
   listTeamMembersReqSchema,
@@ -65,7 +65,7 @@ export class ToolServer {
       {
         title: "Search Meetings",
         description:
-          "Search Fathom meetings by title. Required: query (search term). " +
+          "Search Fathom meetings by title or meeting_title. Required: query (search term). " +
           "Optional filters: cursor (pagination), created_after, created_before (ISO timestamps), " +
           "calendar_invitees_domains, calendar_invitees_domains_type, teams, recorded_by, " +
           "include_action_items (boolean), include_crm_matches (boolean)",
@@ -134,7 +134,7 @@ export class ToolServer {
 
   private getUserId(extra: ToolRequestExtra): string {
     if (!extra.sessionId) {
-      throw ErrorLogger.session(
+      throw AppError.session(
         "missing_session",
         "No session ID provided in tool context",
       );
@@ -142,7 +142,7 @@ export class ToolServer {
 
     const session = this.getActiveTransportFn(extra.sessionId);
     if (!session) {
-      throw ErrorLogger.session("session_not_found", "Session not found");
+      throw AppError.session("session_not_found", "Session not found");
     }
 
     return session.userId;
