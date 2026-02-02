@@ -6,7 +6,7 @@ export type ErrorType =
   | "fathom_api"
   | "server";
 
-export class ErrorLogger extends Error {
+export class AppError extends Error {
   readonly statusCode: number;
   readonly code: string;
   readonly errorType: ErrorType;
@@ -20,27 +20,27 @@ export class ErrorLogger extends Error {
     errorName?: string,
   ) {
     super(message);
-    this.name = "ErrorLogger";
+    this.name = "AppError";
     this.statusCode = statusCode;
     this.code = code;
     this.errorType = errorType;
     this.errorName = errorName ?? code;
   }
 
-  static auth(code: string, message: string, errorName?: string): ErrorLogger {
-    return new ErrorLogger(401, code, message, "auth", errorName);
+  static auth(code: string, message: string, errorName?: string): AppError {
+    return new AppError(401, code, message, "auth", errorName);
   }
 
-  static forbidden(message: string, errorName?: string): ErrorLogger {
-    return new ErrorLogger(403, "forbidden", message, "auth", errorName);
+  static forbidden(message: string, errorName?: string): AppError {
+    return new AppError(403, "forbidden", message, "auth", errorName);
   }
 
-  static oauth(code: string, message: string, errorName?: string): ErrorLogger {
-    return new ErrorLogger(400, code, message, "oauth", errorName);
+  static oauth(code: string, message: string, errorName?: string): AppError {
+    return new AppError(400, code, message, "oauth", errorName);
   }
 
-  static validation(message: string, errorName?: string): ErrorLogger {
-    return new ErrorLogger(
+  static validation(message: string, errorName?: string): AppError {
+    return new AppError(
       400,
       "invalid_request",
       message,
@@ -49,16 +49,12 @@ export class ErrorLogger extends Error {
     );
   }
 
-  static session(
-    code: string,
-    message: string,
-    errorName?: string,
-  ): ErrorLogger {
-    return new ErrorLogger(400, code, message, "session", errorName);
+  static session(code: string, message: string, errorName?: string): AppError {
+    return new AppError(400, code, message, "session", errorName);
   }
 
-  static fathomApi(message: string, errorName?: string): ErrorLogger {
-    return new ErrorLogger(
+  static fathomApi(message: string, errorName?: string): AppError {
+    return new AppError(
       502,
       "fathom_api_error",
       message,
@@ -67,8 +63,8 @@ export class ErrorLogger extends Error {
     );
   }
 
-  static notFound(resource: string, errorName?: string): ErrorLogger {
-    return new ErrorLogger(
+  static notFound(resource: string, errorName?: string): AppError {
+    return new AppError(
       404,
       "not_found",
       `${resource} not found`,
@@ -77,7 +73,7 @@ export class ErrorLogger extends Error {
     );
   }
 
-  static server(message: string, errorName?: string): ErrorLogger {
-    return new ErrorLogger(500, "server_error", message, "server", errorName);
+  static server(message: string, errorName?: string): AppError {
+    return new AppError(500, "server_error", message, "server", errorName);
   }
 }

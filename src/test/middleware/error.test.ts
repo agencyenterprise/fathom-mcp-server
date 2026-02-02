@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { errorHandler } from "../../middleware/error";
-import { ErrorLogger } from "../../shared/errors";
+import { AppError } from "../../shared/errors";
 
 function createMockRequest(): Request {
   return {} as unknown as Request;
@@ -19,8 +19,8 @@ const next: NextFunction = vi.fn();
 
 describe("middleware/error", () => {
   describe("errorHandler", () => {
-    it("handles ErrorLogger with correct status and response", () => {
-      const error = ErrorLogger.auth("unauthorized", "Invalid token");
+    it("handles AppError with correct status and response", () => {
+      const error = AppError.auth("unauthorized", "Invalid token");
       const req = createMockRequest();
       const res = createMockResponse();
 
@@ -33,17 +33,17 @@ describe("middleware/error", () => {
       });
     });
 
-    it("handles different ErrorLogger types", () => {
+    it("handles different AppError types", () => {
       const testCases = [
         {
-          error: ErrorLogger.oauth("invalid_grant", "Grant expired"),
+          error: AppError.oauth("invalid_grant", "Grant expired"),
           status: 400,
         },
-        { error: ErrorLogger.validation("Invalid input"), status: 400 },
-        { error: ErrorLogger.notFound("Session"), status: 404 },
-        { error: ErrorLogger.server("Internal error"), status: 500 },
-        { error: ErrorLogger.fathomApi("API error"), status: 502 },
-        { error: ErrorLogger.forbidden("Access denied"), status: 403 },
+        { error: AppError.validation("Invalid input"), status: 400 },
+        { error: AppError.notFound("Session"), status: 404 },
+        { error: AppError.server("Internal error"), status: 500 },
+        { error: AppError.fathomApi("API error"), status: 502 },
+        { error: AppError.forbidden("Access denied"), status: 403 },
       ];
 
       for (const { error, status } of testCases) {

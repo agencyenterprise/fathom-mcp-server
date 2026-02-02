@@ -1,7 +1,7 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FathomAPIClient } from "../../modules/fathom/api";
-import { ErrorLogger } from "../../shared/errors";
+import { AppError } from "../../shared/errors";
 import {
   getSummary,
   getTranscript,
@@ -83,9 +83,9 @@ describe("tools/handlers", () => {
       expect(result.isError).toBe(true);
     });
 
-    it("returns error on ErrorLogger", async () => {
+    it("returns error on AppError", async () => {
       vi.mocked(FathomAPIClient.createAuthorizedService).mockRejectedValue(
-        ErrorLogger.auth("no_token", "No token found"),
+        AppError.auth("no_token", "No token found"),
       );
 
       const result = await listMeetings("user-123", {});

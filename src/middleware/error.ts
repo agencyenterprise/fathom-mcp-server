@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
-import { ErrorLogger } from "../shared/errors";
+import { AppError } from "../shared/errors";
 import { logger } from "./logger";
 
 export function errorHandler(
@@ -9,7 +9,7 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ) {
-  if (err instanceof ErrorLogger) {
+  if (err instanceof AppError) {
     logger.error(
       {
         errorType: err.errorType,

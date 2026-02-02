@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { ErrorLogger } from "../../shared/errors";
+import { AppError } from "../../shared/errors";
 
 const BLOCKED_SCHEMES = ["javascript:", "data:", "vbscript:"];
 
@@ -18,18 +18,18 @@ export function renderOAuthSuccessPage(req: Request, res: Response) {
 
 function validateRedirect(redirect: string | undefined): string {
   if (!redirect) {
-    throw ErrorLogger.validation("Missing redirect parameter");
+    throw AppError.validation("Missing redirect parameter");
   }
 
   let url: URL;
   try {
     url = new URL(redirect);
   } catch {
-    throw ErrorLogger.validation("Invalid redirect URL");
+    throw AppError.validation("Invalid redirect URL");
   }
 
   if (BLOCKED_SCHEMES.includes(url.protocol)) {
-    throw ErrorLogger.validation("Invalid redirect scheme");
+    throw AppError.validation("Invalid redirect scheme");
   }
 
   return redirect;

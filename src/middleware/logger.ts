@@ -11,11 +11,11 @@ function generateRequestId(): ReqId {
   return requestCounter;
 }
 
-const isDev = config.nodeEnv === "staging";
+const isStaging = config.nodeEnv === "staging";
 
 export const logger = pino({
-  level: isDev ? "debug" : "info",
-  ...(isDev && {
+  level: isStaging ? "debug" : "info",
+  ...(isStaging && {
     transport: {
       target: "pino-pretty",
       options: {

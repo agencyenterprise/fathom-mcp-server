@@ -16,7 +16,7 @@ router.post("/register", oauthRateLimiter, (req, res, next) =>
 router.get("/authorize", oauthRateLimiter, (req, res, next) =>
   authorizeClientAndRedirectToFathom(req, res).catch(next),
 );
-router.get("/fathom/callback", (req, res, next) =>
+router.get("/fathom/callback", oauthRateLimiter, (req, res, next) =>
   completeFathomAuthAndRedirectClient(req, res).catch(next),
 );
 router.post("/token", oauthRateLimiter, (req, res, next) =>

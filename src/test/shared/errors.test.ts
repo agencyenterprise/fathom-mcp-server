@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ErrorLogger } from "../../shared/errors";
+import { AppError } from "../../shared/errors";
 
-describe("ErrorLogger", () => {
+describe("AppError", () => {
   describe("constructor", () => {
     it("creates an error with all properties", () => {
-      const error = new ErrorLogger(
+      const error = new AppError(
         400,
         "test_code",
         "Test message",
@@ -17,11 +17,11 @@ describe("ErrorLogger", () => {
       expect(error.message).toBe("Test message");
       expect(error.errorType).toBe("validation");
       expect(error.errorName).toBe("test_name");
-      expect(error.name).toBe("ErrorLogger");
+      expect(error.name).toBe("AppError");
     });
 
     it("defaults errorName to code when not provided", () => {
-      const error = new ErrorLogger(400, "test_code", "Test message", "auth");
+      const error = new AppError(400, "test_code", "Test message", "auth");
 
       expect(error.errorName).toBe("test_code");
     });
@@ -29,7 +29,7 @@ describe("ErrorLogger", () => {
 
   describe("static factory methods", () => {
     it("auth creates a 401 error", () => {
-      const error = ErrorLogger.auth("unauthorized", "Not authorized");
+      const error = AppError.auth("unauthorized", "Not authorized");
 
       expect(error.statusCode).toBe(401);
       expect(error.code).toBe("unauthorized");
@@ -38,13 +38,13 @@ describe("ErrorLogger", () => {
     });
 
     it("auth accepts optional errorName", () => {
-      const error = ErrorLogger.auth("code", "message", "custom_name");
+      const error = AppError.auth("code", "message", "custom_name");
 
       expect(error.errorName).toBe("custom_name");
     });
 
     it("forbidden creates a 403 error", () => {
-      const error = ErrorLogger.forbidden("Access denied");
+      const error = AppError.forbidden("Access denied");
 
       expect(error.statusCode).toBe(403);
       expect(error.code).toBe("forbidden");
@@ -53,7 +53,7 @@ describe("ErrorLogger", () => {
     });
 
     it("oauth creates a 400 error", () => {
-      const error = ErrorLogger.oauth("invalid_grant", "Grant expired");
+      const error = AppError.oauth("invalid_grant", "Grant expired");
 
       expect(error.statusCode).toBe(400);
       expect(error.code).toBe("invalid_grant");
@@ -62,7 +62,7 @@ describe("ErrorLogger", () => {
     });
 
     it("validation creates a 400 error with invalid_request code", () => {
-      const error = ErrorLogger.validation("Invalid input");
+      const error = AppError.validation("Invalid input");
 
       expect(error.statusCode).toBe(400);
       expect(error.code).toBe("invalid_request");
@@ -71,7 +71,7 @@ describe("ErrorLogger", () => {
     });
 
     it("session creates a 400 error", () => {
-      const error = ErrorLogger.session("session_expired", "Session expired");
+      const error = AppError.session("session_expired", "Session expired");
 
       expect(error.statusCode).toBe(400);
       expect(error.code).toBe("session_expired");
@@ -80,7 +80,7 @@ describe("ErrorLogger", () => {
     });
 
     it("fathomApi creates a 502 error", () => {
-      const error = ErrorLogger.fathomApi("API timeout");
+      const error = AppError.fathomApi("API timeout");
 
       expect(error.statusCode).toBe(502);
       expect(error.code).toBe("fathom_api_error");
@@ -89,7 +89,7 @@ describe("ErrorLogger", () => {
     });
 
     it("notFound creates a 404 error with formatted message", () => {
-      const error = ErrorLogger.notFound("Session");
+      const error = AppError.notFound("Session");
 
       expect(error.statusCode).toBe(404);
       expect(error.code).toBe("not_found");
@@ -98,7 +98,7 @@ describe("ErrorLogger", () => {
     });
 
     it("server creates a 500 error", () => {
-      const error = ErrorLogger.server("Internal error");
+      const error = AppError.server("Internal error");
 
       expect(error.statusCode).toBe(500);
       expect(error.code).toBe("server_error");
@@ -109,17 +109,17 @@ describe("ErrorLogger", () => {
 
   describe("inheritance", () => {
     it("is an instance of Error", () => {
-      const error = ErrorLogger.server("Test");
+      const error = AppError.server("Test");
 
       expect(error).toBeInstanceOf(Error);
-      expect(error).toBeInstanceOf(ErrorLogger);
+      expect(error).toBeInstanceOf(AppError);
     });
 
     it("has a stack trace", () => {
-      const error = ErrorLogger.server("Test");
+      const error = AppError.server("Test");
 
       expect(error.stack).toBeDefined();
-      expect(error.stack).toContain("ErrorLogger");
+      expect(error.stack).toContain("AppError");
     });
   });
 });

@@ -1,7 +1,7 @@
 import { logger } from "../../middleware/logger";
 import { config } from "../../shared/config";
 import { BEARER_PREFIX, FATHOM_API_TIMEOUT_MS } from "../../shared/constants";
-import { ErrorLogger } from "../../shared/errors";
+import { AppError } from "../../shared/errors";
 import type { ListMeetingsReqType } from "../../shared/schemas";
 import { fetchFathomOAuthToken } from "../oauth/controller";
 import {
@@ -45,7 +45,7 @@ export class FathomAPIClient {
           { endpoint, status: response.status, errorBody },
           "Fathom API error",
         );
-        throw ErrorLogger.fathomApi(
+        throw AppError.fathomApi(
           `Fathom API returned error ${response.status}`,
           `fathom_api_${response.status}`,
         );
@@ -54,7 +54,7 @@ export class FathomAPIClient {
       return response.json();
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
-        throw ErrorLogger.fathomApi("Fathom API request timed out");
+        throw AppError.fathomApi("Fathom API request timed out");
       }
       throw error;
     } finally {
@@ -133,7 +133,7 @@ export class FathomAPIClient {
     const accessToken = await fetchFathomOAuthToken(userId);
 
     if (!accessToken) {
-      throw ErrorLogger.auth(
+      throw AppError.auth(
         "no_fathom_account",
         "No Fathom account connected. Please connect via Claude Settings > Connectors.",
       );

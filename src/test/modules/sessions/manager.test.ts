@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../db", () => ({ db: {} }));
 
@@ -40,14 +40,14 @@ vi.mock("@modelcontextprotocol/sdk/server/streamableHttp.js", () => ({
   },
 }));
 
+import { cleanupExpiredMcpServerOAuthData } from "../../../modules/oauth/service";
+import { SessionManager } from "../../../modules/sessions/manager";
 import {
   deleteSessionsByIds,
   findExpiredSessionIds,
   insertSession,
   markSessionTerminated,
 } from "../../../modules/sessions/service";
-import { cleanupExpiredMcpServerOAuthData } from "../../../modules/oauth/service";
-import { SessionManager } from "../../../modules/sessions/manager";
 
 describe("SessionManager", () => {
   let sessionManager: SessionManager;
@@ -99,12 +99,12 @@ describe("SessionManager", () => {
       expect(markSessionTerminated).toHaveBeenCalledWith("session-123");
     });
 
-    it("throws ErrorLogger when persistTermination fails", async () => {
+    it("throws AppError when persistTermination fails", async () => {
       vi.mocked(markSessionTerminated).mockRejectedValue(new Error("DB error"));
 
-      await expect(sessionManager.terminateSession("session-123")).rejects.toThrow(
-        "Failed to terminate session",
-      );
+      await expect(
+        sessionManager.terminateSession("session-123"),
+      ).rejects.toThrow("Failed to terminate session");
     });
   });
 
@@ -132,7 +132,10 @@ describe("SessionManager", () => {
       await sessionManager.cleanupExpiredData();
 
       expect(findExpiredSessionIds).toHaveBeenCalled();
-      expect(deleteSessionsByIds).toHaveBeenCalledWith(["expired-1", "expired-2"]);
+      expect(deleteSessionsByIds).toHaveBeenCalledWith([
+        "expired-1",
+        "expired-2",
+      ]);
       expect(cleanupExpiredMcpServerOAuthData).toHaveBeenCalled();
     });
 
