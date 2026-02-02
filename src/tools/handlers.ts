@@ -120,7 +120,6 @@ export async function searchMeetings(
   args: unknown,
 ): Promise<CallToolResult> {
   try {
-    // todo: add note to zod schema 'this searches title and meeting title'
     const input = searchMeetingsReqSchema.parse(args);
     const service = await FathomAPIClient.createAuthorizedService(userId);
     const data = await service.listMeetings(input);

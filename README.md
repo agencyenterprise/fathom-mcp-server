@@ -191,6 +191,7 @@ See [RELEASING.md](RELEASING.md) for version and release instructions.
 - **Meeting analytics** — Calculate stats like total meeting time, meeting frequency, and top attendees.
 - **Speaker time analysis** — Analyze transcripts to show who spoke most in a meeting.
 - **Meeting comparison** — Compare two meeting summaries to highlight what changed over time.
+- **Fathom API changelog monitoring** — Automated detection of Fathom API changes via GitHub Action that periodically checks their API reference and creates an issue if changes are detected.
 
 Contributions toward these goals are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
