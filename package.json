@@ -1,6 +1,6 @@
 {
   "name": "fathom-mcp-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server connecting Claude to Fathom meeting recordings, transcripts, and summaries",
   "type": "module",
   "license": "MIT",
