@@ -74,8 +74,8 @@ describe("FathomAPIClient", () => {
       });
 
       const callUrl = vi.mocked(fetch).mock.calls[0][0] as string;
-      expect(callUrl).toContain("teams=sales");
-      expect(callUrl).toContain("teams=engineering");
+      expect(callUrl).toContain("teams%5B%5D=sales");
+      expect(callUrl).toContain("teams%5B%5D=engineering");
       expect(callUrl).toContain("cursor=page-2");
       expect(callUrl).toContain("include_action_items=true");
     });
@@ -94,10 +94,10 @@ describe("FathomAPIClient", () => {
       });
 
       const callUrl = vi.mocked(fetch).mock.calls[0][0] as string;
-      expect(callUrl).toContain("calendar_invitees_domains=example.com");
-      expect(callUrl).toContain("calendar_invitees_domains=test.com");
-      expect(callUrl).toContain("recorded_by=user1%40example.com");
-      expect(callUrl).toContain("recorded_by=user2%40example.com");
+      expect(callUrl).toContain("calendar_invitees_domains%5B%5D=example.com");
+      expect(callUrl).toContain("calendar_invitees_domains%5B%5D=test.com");
+      expect(callUrl).toContain("recorded_by%5B%5D=user1%40example.com");
+      expect(callUrl).toContain("recorded_by%5B%5D=user2%40example.com");
     });
 
     it("throws on API error", async () => {
