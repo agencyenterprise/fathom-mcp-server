@@ -73,7 +73,7 @@ export class FathomAPIClient {
 
       if (Array.isArray(value)) {
         for (const item of value) {
-          searchParams.append(key, item);
+          searchParams.append(`${key}[]`, item);
         }
       } else {
         searchParams.set(key, String(value));
