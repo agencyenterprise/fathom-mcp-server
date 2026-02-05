@@ -1,10 +1,10 @@
-# Fathom MCP Server
+# Fathom AI MCP Server
 
-> A remote MCP server that connects AI assistants like Claude to Fathom meetings, transcripts, and AI summaries.
+> A remote MCP server that connects AI assistants like Claude to Fathom AI meetings, transcripts, and AI summaries.
 
 ## What is this?
 
-Fathom MCP Server is an open source Model Context Protocol (MCP) server that enables MCP hosts (like Claude Desktop) to access Fathom meeting data. It acts as a bridge between AI assistants and Fathom's meeting recording and transcription service.
+Fathom AI MCP Server is an open source Model Context Protocol (MCP) server that enables MCP hosts (like Claude Desktop) to access Fathom AI meeting data. It acts as a secure bridge between AI assistants and Fathom AI's meeting recording and transcription service.
 
 Think of MCP as "USB-C for AI applications" — this server plugs Fathom's capabilities into any MCP-compatible AI assistant.
 
@@ -22,12 +22,36 @@ https://www.fathom-mcp-server.com/mcp
 
 This MCP server exposes the following tools that AI models can invoke:
 
-- list_meetings: List meetings with filters (date, team, recorder)
-- search_meetings: Search meetings by title (MCP-native, not Fathom API)
-- get_transcript: Get full transcript for a recording
-- get_summary: Get AI-generated summary for a recording
-- list_teams: List all accessible teams
-- list_team_members: List members of a team
+### list_meetings
+List meetings with optional filters including date range, team, and recorder.
+- Parameters: after (ISO date), before (ISO date), team_id, recorder_id, limit, cursor
+- Returns: Array of meeting objects with id, title, date, duration, participants
+
+### search_meetings
+Search meetings by title. This is an MCP-native tool that performs client-side filtering.
+- Parameters: query (required), after, before, team_id, limit
+- Returns: Array of matching meeting objects
+- Note: For users with many meetings, use list_meetings with date filters for better performance
+
+### get_transcript
+Get the full transcript for a specific recording.
+- Parameters: recording_id (required)
+- Returns: Full transcript with speaker labels, timestamps, and text
+
+### get_summary
+Get the AI-generated summary for a specific recording.
+- Parameters: recording_id (required)
+- Returns: AI summary including key points, action items, and decisions
+
+### list_teams
+List all teams the authenticated user has access to.
+- Parameters: none
+- Returns: Array of team objects with id, name, member count
+
+### list_team_members
+List all members of a specific team.
+- Parameters: team_id (required)
+- Returns: Array of team member objects with id, name, email, role
 
 ## MCP Capabilities
 
@@ -48,15 +72,44 @@ This MCP server exposes the following tools that AI models can invoke:
 3. Paste: https://www.fathom-mcp-server.com/mcp
 4. Authenticate with your Fathom account via OAuth
 
+For organizations: Admins must add the connector via organization admin settings, not personal settings.
+
+## Example Prompts for Claude
+
+After connecting, you can ask Claude things like:
+
+- "Show me my meetings from last week"
+- "Get the transcript from my standup yesterday"
+- "Summarize my meeting with the design team"
+- "What action items came out of my last meeting?"
+- "List all my team members"
+- "Search for meetings about the product roadmap"
+
+## Security
+
+- Pass-through architecture: Meeting data flows from Fathom to Claude without being stored
+- Encryption at rest: OAuth tokens encrypted with AES-256-GCM
+- HTTPS only: All communication encrypted in transit
+- No data logging: Meetings, transcripts, and summaries are never logged
+
+## Privacy
+
+Full privacy policy: https://www.fathom-mcp-server.com/privacy
+
 ## Source Code
 
 https://github.com/agencyenterprise/fathom-mcp-server
+
+## API Documentation
+
+https://www.fathom-mcp-server.com/docs
 
 ## Related
 
 - Model Context Protocol: https://modelcontextprotocol.io
 - MCP Registry: https://modelcontextprotocol.io/registry
 - Fathom: https://fathom.video
+- Fathom API: https://developers.fathom.ai
 
 ## License
 

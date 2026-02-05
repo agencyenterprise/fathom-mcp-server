@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fathom MCP Server - Connect Claude to Your Meetings</title>
+    <title>Fathom AI MCP Server - Connect Claude to Your Meetings</title>
     <meta
       name="description"
       content="Open source remote MCP server connecting Claude and AI assistants to Fathom meetings, transcripts, and summaries. Model Context Protocol integration for AI agents."
@@ -32,14 +32,18 @@
     />
 
     <!-- Twitter -->
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta
       name="twitter:title"
-      content="Fathom MCP - Connect Claude to Your Meetings"
+      content="Fathom MCP Server - Connect Claude to Your Meetings"
     />
     <meta
       name="twitter:description"
       content="Open source remote MCP server connecting Claude and AI assistants to Fathom meetings and transcripts."
+    />
+    <meta
+      name="twitter:image"
+      content="https://www.fathom-mcp-server.com/logo.png"
     />
 
     <link rel="icon" type="image/png" href="/logo.png" />
@@ -51,8 +55,8 @@
       {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
-        "name": "Fathom MCP Server",
-        "alternateName": "Fathom Model Context Protocol Server",
+        "name": "Fathom AI MCP Server",
+        "alternateName": "Fathom AI Model Context Protocol Server",
         "description": "Connect Claude to your Fathom meetings, transcripts, and AI summaries. An open source MCP (Model Context Protocol) server.",
         "url": "https://www.fathom-mcp-server.com",
         "applicationCategory": "DeveloperApplication",
@@ -72,6 +76,54 @@
           "url": "https://ae.studio"
         },
         "codeRepository": "https://github.com/agencyenterprise/fathom-mcp-server"
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is Fathom AI MCP Server?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Fathom AI MCP Server is an open source Model Context Protocol (MCP) server that connects AI assistants like Claude to your Fathom AI meetings, transcripts, and AI-generated summaries. It acts as a secure bridge between Claude and Fathom's API."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is my Fathom AI data stored by this server?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Fathom AI MCP Server uses a pass-through architecture. Your meetings, transcripts, and summaries are fetched from Fathom AI and passed directly to Claude without being stored, cached, or logged. Only OAuth tokens are stored (encrypted with AES-256-GCM)."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I connect Fathom AI MCP Server to Claude?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Open Claude Desktop, go to Settings > Connectors > Add Custom Connector, paste https://www.fathom-mcp-server.com/mcp, and authenticate with your Fathom AI account. Setup takes under 60 seconds."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What is the Model Context Protocol (MCP)?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "MCP is an open protocol created by Anthropic that allows AI assistants to securely connect to external data sources and tools. Think of it as USB-C for AI applications - it provides a standardized way to plug capabilities into AI models."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What tools are available in Fathom AI MCP Server?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Fathom AI MCP Server provides 6 tools: list_meetings (list meetings with filters), search_meetings (search by title), get_transcript (get full transcript), get_summary (get AI summary), list_teams (list accessible teams), and list_team_members (list team members)."
+            }
+          }
+        ]
       }
     </script>
     <style>
@@ -208,8 +260,8 @@
   </head>
   <body>
     <main>
-      <img class="logo" src="/logo.png" alt="Fathom MCP Server" />
-      <h1>Fathom MCP Server</h1>
+      <img class="logo" src="/logo.png" alt="Fathom AI MCP Server" />
+      <h1>Fathom AI MCP Server</h1>
       <p class="tagline">
         Connect Claude to your Fathom meetings, transcripts, and AI summaries.
       </p>
