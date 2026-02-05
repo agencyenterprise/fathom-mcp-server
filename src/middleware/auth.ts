@@ -15,8 +15,32 @@ declare global {
 
 const WWW_AUTHENTICATE_VALUE = `Bearer resource_metadata="${config.baseUrl}/.well-known/oauth-protected-resource"`;
 
-function sendUnauthorized(res: Response, code: string, message: string) {
-  logger.error({ errorType: "auth", code, message }, "Authentication failed");
+function getTokenHint(authHeader: string | undefined): string | null {
+  if (!authHeader?.startsWith(BEARER_PREFIX)) return null;
+  const token = authHeader.slice(BEARER_PREFIX.length);
+  if (token.length < 12) return null;
+  return `${token.slice(0, 4)}...${token.slice(-4)}`;
+}
+
+function sendUnauthorized(
+  req: Request,
+  res: Response,
+  code: string,
+  message: string,
+) {
+  logger.info(
+    {
+      errorType: "auth",
+      code,
+      message,
+      ip: req.ip || req.headers["x-forwarded-for"],
+      userAgent: req.headers["user-agent"],
+      method: req.method,
+      path: req.path,
+      tokenHint: getTokenHint(req.headers.authorization),
+    },
+    "Authentication failed",
+  );
   res.setHeader("WWW-Authenticate", WWW_AUTHENTICATE_VALUE);
   res.status(401).json({ error: code, error_description: message });
 }
@@ -30,6 +54,7 @@ export async function bearerAuthMiddleware(
 
   if (!authHeader?.startsWith(BEARER_PREFIX)) {
     sendUnauthorized(
+      req,
       res,
       "unauthorized",
       "Missing or invalid Authorization header",
@@ -43,7 +68,7 @@ export async function bearerAuthMiddleware(
     const accessTokenRecord = await getMcpServerAccessToken(token);
 
     if (!accessTokenRecord) {
-      sendUnauthorized(res, "invalid_token", "Token not found or expired");
+      sendUnauthorized(req, res, "invalid_token", "Token not found or expired");
       return;
     }
 
