@@ -1,6 +1,6 @@
 <div align="center">
 
-# Fathom MCP Server
+# Fathom AI MCP Server
 
 **Connect Claude to your Fathom meetings, transcripts, and AI summaries.**
 

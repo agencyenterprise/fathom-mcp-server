@@ -1,0 +1,436 @@
+# Fathom AI MCP Server - Complete Documentation
+
+> A remote MCP server that connects AI assistants like Claude to Fathom AI meetings, transcripts, and AI summaries.
+
+This is the full documentation for LLMs and AI systems. For a shorter version, see /llms.txt
+
+## Overview
+
+Fathom AI MCP Server is an open source Model Context Protocol (MCP) server that enables MCP hosts (like Claude Desktop) to access Fathom AI meeting data. It acts as a secure bridge between AI assistants and Fathom AI's meeting recording and transcription service.
+
+Think of MCP as "USB-C for AI applications" — this server plugs Fathom's capabilities into any MCP-compatible AI assistant.
+
+## Server Information
+
+- Type: Remote MCP Server
+- Transport: Streamable HTTP
+- Authentication: OAuth 2.0
+- URL: https://www.fathom-mcp-server.com/mcp
+- API Docs: https://www.fathom-mcp-server.com/docs
+- Source: https://github.com/agencyenterprise/fathom-mcp-server
+- License: MIT
+
+## MCP Capabilities
+
+- Tools: Yes (6 tools)
+- Resources: No
+- Prompts: No
+
+## Compatible MCP Hosts
+
+- Claude Desktop
+- Claude.ai (via Connectors)
+- Any MCP-compatible AI assistant or agent
+
+---
+
+## MCP Tools - Complete Reference
+
+### 1. list_meetings
+
+List meetings with optional filters including date range, team, and recorder.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| calendar_invitees_domains | string[] | No | Filter by attendee email domains |
+| calendar_invitees_domains_type | enum | No | "all", "only_internal", or "one_or_more_external" |
+| created_after | ISO datetime | No | Only meetings created after this date |
+| created_before | ISO datetime | No | Only meetings created before this date |
+| cursor | string | No | Pagination cursor for next page |
+| include_action_items | boolean | No | Include action items in response |
+| include_crm_matches | boolean | No | Include CRM matches in response |
+| recorded_by | string[] | No | Filter by recorder email addresses |
+| teams | string[] | No | Filter by team names |
+
+**Response Schema:**
+
+```json
+{
+  "limit": number | null,
+  "next_cursor": string | null,
+  "items": [
+    {
+      "title": string,
+      "meeting_title": string | null,
+      "recording_id": number,
+      "url": string,
+      "share_url": string,
+      "created_at": string,
+      "scheduled_start_time": string,
+      "scheduled_end_time": string,
+      "recording_start_time": string,
+      "recording_end_time": string,
+      "calendar_invitees_domains_type": "only_internal" | "one_or_more_external",
+      "transcript_language": string,
+      "calendar_invitees": [
+        {
+          "name": string | null,
+          "email": string | null,
+          "email_domain": string | null,
+          "is_external": boolean,
+          "matched_speaker_display_name": string | null
+        }
+      ],
+      "recorded_by": {
+        "name": string,
+        "email": string,
+        "email_domain": string,
+        "team": string | null
+      },
+      "transcript": [...] | null,
+      "default_summary": {...} | null,
+      "action_items": [...] | null,
+      "crm_matches": {...} | null
+    }
+  ]
+}
+```
+
+**Example Usage:**
+
+```
+User: "Show me my meetings from last week"
+Tool call: list_meetings with created_after="2026-01-27T00:00:00Z", created_before="2026-02-03T23:59:59Z"
+```
+
+---
+
+### 2. search_meetings
+
+Search meetings by title. This is an MCP-native tool that performs client-side filtering since Fathom's API doesn't provide a search endpoint.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| query | string | Yes | Search term to match against meeting title |
+| calendar_invitees_domains | string[] | No | Filter by attendee email domains |
+| calendar_invitees_domains_type | enum | No | "all", "only_internal", or "one_or_more_external" |
+| created_after | ISO datetime | No | Only meetings created after this date |
+| created_before | ISO datetime | No | Only meetings created before this date |
+| cursor | string | No | Pagination cursor |
+| include_action_items | boolean | No | Include action items |
+| include_crm_matches | boolean | No | Include CRM matches |
+| recorded_by | string[] | No | Filter by recorder emails |
+| teams | string[] | No | Filter by team names |
+
+**Response Schema:**
+
+Same as list_meetings, but filtered to only include meetings where the title or meeting_title contains the query string (case-insensitive).
+
+**Performance Note:**
+
+For users with many meetings, this tool fetches all meetings matching the filters then filters client-side. For better performance, use list_meetings with date filters instead.
+
+**Example Usage:**
+
+```
+User: "Find meetings about the product roadmap"
+Tool call: search_meetings with query="product roadmap"
+```
+
+---
+
+### 3. get_transcript
+
+Get the full transcript for a specific recording.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| recording_id | string | Yes | The recording ID (from list_meetings response) |
+
+**Response Schema:**
+
+```json
+{
+  "transcript": [
+    {
+      "speaker": {
+        "display_name": string,
+        "matched_calendar_invitee_email": string | null
+      },
+      "text": string,
+      "timestamp": string
+    }
+  ]
+}
+```
+
+**Example Usage:**
+
+```
+User: "Get the transcript from my standup yesterday"
+Steps:
+1. Call list_meetings with date filter for yesterday
+2. Find the standup meeting in results
+3. Call get_transcript with recording_id from that meeting
+```
+
+---
+
+### 4. get_summary
+
+Get the AI-generated summary for a specific recording.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| recording_id | string | Yes | The recording ID (from list_meetings response) |
+
+**Response Schema:**
+
+```json
+{
+  "summary": {
+    "template_name": string | null,
+    "markdown_formatted": string | null
+  }
+}
+```
+
+The `markdown_formatted` field contains the AI-generated summary in markdown format, typically including:
+- Key discussion points
+- Decisions made
+- Action items
+- Next steps
+
+**Example Usage:**
+
+```
+User: "Summarize my meeting with the design team"
+Steps:
+1. Call search_meetings with query="design team" or list_meetings with date filters
+2. Find the relevant meeting
+3. Call get_summary with recording_id from that meeting
+```
+
+---
+
+### 5. list_teams
+
+List all teams the authenticated user has access to.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| cursor | string | No | Pagination cursor for next page |
+
+**Response Schema:**
+
+```json
+{
+  "items": [
+    {
+      "name": string,
+      "created_at": string
+    }
+  ],
+  "limit": number,
+  "next_cursor": string | null
+}
+```
+
+**Example Usage:**
+
+```
+User: "What teams do I have access to?"
+Tool call: list_teams
+```
+
+---
+
+### 6. list_team_members
+
+List all members of a specific team.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| team | string | No | Team name to list members for |
+| cursor | string | No | Pagination cursor for next page |
+
+**Response Schema:**
+
+```json
+{
+  "items": [
+    {
+      "name": string,
+      "email": string,
+      "created_at": string
+    }
+  ],
+  "limit": number,
+  "next_cursor": string | null
+}
+```
+
+**Example Usage:**
+
+```
+User: "Who is on the engineering team?"
+Tool call: list_team_members with team="Engineering"
+```
+
+---
+
+## Common Workflows
+
+### Workflow 1: Review Yesterday's Meetings
+
+1. Call `list_meetings` with `created_after` set to yesterday's date
+2. Present the list of meetings to the user
+3. If user wants details, call `get_transcript` or `get_summary` for specific recordings
+
+### Workflow 2: Find Specific Meeting Content
+
+1. Call `search_meetings` with the user's search term
+2. Present matching meetings
+3. Call `get_transcript` to get full conversation text
+4. Analyze or summarize the transcript content
+
+### Workflow 3: Action Item Follow-up
+
+1. Call `list_meetings` with `include_action_items=true`
+2. Extract and present action items from recent meetings
+3. Help user track completion status
+
+### Workflow 4: Team Meeting Overview
+
+1. Call `list_teams` to get team list
+2. Call `list_meetings` with `teams` filter for specific team
+3. Summarize team's meeting activity
+
+---
+
+## Error Handling
+
+All tools return errors in this format when something goes wrong:
+
+```json
+{
+  "content": [{ "type": "text", "text": "Error message here" }],
+  "isError": true
+}
+```
+
+Common errors:
+- "Invalid parameters" - Check parameter types and required fields
+- "Unauthorized" - OAuth token expired, user needs to re-authenticate
+- "Not found" - Recording ID doesn't exist or user doesn't have access
+
+---
+
+## Security & Privacy
+
+### Data Flow
+
+1. User authenticates via OAuth with Fathom
+2. MCP server stores only encrypted OAuth tokens
+3. Meeting data flows: Fathom API → MCP Server → Claude (pass-through, never stored)
+
+### What's Stored
+
+| Data | Stored | Encrypted |
+|------|--------|-----------|
+| OAuth tokens | Yes | Yes (AES-256-GCM) |
+| Meetings | No | N/A |
+| Transcripts | No | N/A |
+| Summaries | No | N/A |
+
+### Privacy Policy
+
+Full policy: https://www.fathom-mcp-server.com/privacy
+
+---
+
+## How to Connect
+
+### For Individual Users
+
+1. Open Claude Desktop
+2. Go to Settings > Connectors > Add Custom Connector
+3. Paste: https://www.fathom-mcp-server.com/mcp
+4. Click connect and authenticate with Fathom
+
+### For Organizations
+
+Admins must add the connector via organization admin settings (not personal settings) for it to be available to all organization members.
+
+---
+
+## Example Conversation
+
+**User:** "What meetings did I have this week?"
+
+**Assistant:** Let me check your meetings from this week.
+
+*[Calls list_meetings with created_after="2026-02-03T00:00:00Z"]*
+
+You had 5 meetings this week:
+1. Monday 10am - Weekly Standup (45 min)
+2. Monday 2pm - Product Review (1 hour)
+3. Tuesday 11am - Design Sync (30 min)
+4. Wednesday 3pm - Client Call - Acme Corp (45 min)
+5. Thursday 9am - Sprint Planning (1.5 hours)
+
+Would you like me to get the transcript or summary from any of these?
+
+**User:** "Get me the summary from the client call"
+
+**Assistant:** *[Calls get_summary with recording_id from the Acme Corp meeting]*
+
+Here's the summary from your client call with Acme Corp:
+
+**Key Discussion Points:**
+- Reviewed Q1 deliverables and timeline
+- Discussed new feature requests for mobile app
+- Addressed concerns about API performance
+
+**Decisions Made:**
+- Agreed to extend deadline by 2 weeks
+- Will prioritize mobile notifications feature
+
+**Action Items:**
+- Send updated timeline by Friday (you)
+- Provide API usage metrics (client)
+- Schedule follow-up for next Tuesday
+
+---
+
+## Related Resources
+
+- Model Context Protocol: https://modelcontextprotocol.io
+- MCP Specification: https://spec.modelcontextprotocol.io
+- MCP Registry: https://modelcontextprotocol.io/registry
+- Fathom: https://fathom.video
+- Fathom API Docs: https://developers.fathom.ai
+- Fathom LLMs.txt: https://developers.fathom.ai/llms.txt
+
+---
+
+## Support & Contributing
+
+- GitHub Issues: https://github.com/agencyenterprise/fathom-mcp-server/issues
+- Contributing Guide: https://github.com/agencyenterprise/fathom-mcp-server/blob/main/CONTRIBUTING.md
+
+## License
+
+MIT License - https://github.com/agencyenterprise/fathom-mcp-server/blob/main/LICENSE

@@ -1,7 +1,7 @@
 {
   "name": "fathom-mcp-server",
   "version": "1.0.0",
-  "description": "MCP server connecting Claude to Fathom meeting recordings, transcripts, and summaries",
+  "description": "MCP server connecting Claude to Fathom AI meeting recordings, transcripts, and summaries",
   "type": "module",
   "license": "MIT",
   "author": "Jeff Patterson <jeff@ae.studio>",
@@ -11,11 +11,22 @@
   },
   "keywords": [
     "mcp",
+    "mcp-server",
+    "model-context-protocol",
     "fathom",
+    "fathom-ai",
     "claude",
+    "anthropic",
     "meetings",
     "transcripts",
-    "ai"
+    "ai",
+    "ai-assistant",
+    "ai-agent",
+    "llm",
+    "meeting-notes",
+    "meeting-transcription",
+    "remote-mcp-server",
+    "oauth"
   ],
   "engines": {
     "node": ">=18"
