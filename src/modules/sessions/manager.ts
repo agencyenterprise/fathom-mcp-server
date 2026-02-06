@@ -1,7 +1,12 @@
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { randomUUID } from "crypto";
 import { logger } from "../../middleware/logger";
-import { SESSION_CLEANUP_INTERVAL_MS } from "../../shared/constants";
+import {
+  IDLE_TRANSPORT_REAP_INTERVAL_MS,
+  IDLE_TRANSPORT_TTL_MS,
+  MAX_ACTIVE_TRANSPORTS_WARN,
+  SESSION_CLEANUP_INTERVAL_MS,
+} from "../../shared/constants";
 import { AppError } from "../../shared/errors";
 import { ToolServer } from "../../tools/server";
 import { cleanupExpiredMcpServerOAuthData } from "../oauth/service";
@@ -22,6 +27,7 @@ export class SessionManager {
   private activeTransports: Map<string, ActiveTransport>;
   private toolServer: ToolServer;
   private cleanupIntervalId: NodeJS.Timeout | null = null;
+  private reapIntervalId: NodeJS.Timeout | null = null;
 
   constructor() {
     this.activeTransports = new Map();
@@ -79,8 +85,22 @@ export class SessionManager {
       lastAccessedAt: new Date(),
     });
 
+    const activeCount = this.activeTransports.size;
+
+    if (activeCount > MAX_ACTIVE_TRANSPORTS_WARN) {
+      logger.warn(
+        {
+          sessionId,
+          userId,
+          activeCount,
+          threshold: MAX_ACTIVE_TRANSPORTS_WARN,
+        },
+        "Active transport count exceeds warning threshold",
+      );
+    }
+
     logger.info(
-      { sessionId, userId, activeCount: this.activeTransports.size },
+      { sessionId, userId, activeCount },
       "Transport stored in memory",
     );
   }
@@ -130,6 +150,44 @@ export class SessionManager {
       // Error already thrown as AppError.server, can't propagate from SDK callback
     }
     this.activeTransports.delete(sessionId);
+  }
+
+  async reapIdleTransports(): Promise<void> {
+    const now = Date.now();
+    const idleSessions: string[] = [];
+
+    for (const [sessionId, entry] of this.activeTransports) {
+      const idleMs = now - entry.lastAccessedAt.getTime();
+      if (idleMs > IDLE_TRANSPORT_TTL_MS) {
+        idleSessions.push(sessionId);
+      }
+    }
+
+    if (idleSessions.length === 0) return;
+
+    const closePromises = idleSessions.map(async (sessionId) => {
+      const entry = this.activeTransports.get(sessionId);
+      if (entry) {
+        try {
+          await entry.transport.close();
+        } catch (error) {
+          logger.error({ sessionId, error }, "Error closing idle transport");
+        }
+        this.activeTransports.delete(sessionId);
+      }
+      try {
+        await markSessionTerminated(sessionId);
+      } catch {
+        // Best-effort DB update
+      }
+    });
+
+    await Promise.all(closePromises);
+
+    logger.info(
+      { reaped: idleSessions.length, remaining: this.activeTransports.size },
+      "Reaped idle transports",
+    );
   }
 
   async cleanupExpiredData(): Promise<void> {
@@ -186,9 +244,18 @@ export class SessionManager {
       SESSION_CLEANUP_INTERVAL_MS,
     );
 
+    this.reapIntervalId = setInterval(
+      () => this.reapIdleTransports(),
+      IDLE_TRANSPORT_REAP_INTERVAL_MS,
+    );
+
     logger.info(
-      { intervalMs: SESSION_CLEANUP_INTERVAL_MS },
-      "Data cleanup scheduler started",
+      {
+        cleanupIntervalMs: SESSION_CLEANUP_INTERVAL_MS,
+        reapIntervalMs: IDLE_TRANSPORT_REAP_INTERVAL_MS,
+        idleTtlMs: IDLE_TRANSPORT_TTL_MS,
+      },
+      "Data cleanup and idle reaper schedulers started",
     );
   }
 
@@ -196,8 +263,12 @@ export class SessionManager {
     if (this.cleanupIntervalId) {
       clearInterval(this.cleanupIntervalId);
       this.cleanupIntervalId = null;
-      logger.info("Session cleanup scheduler stopped");
     }
+    if (this.reapIntervalId) {
+      clearInterval(this.reapIntervalId);
+      this.reapIntervalId = null;
+    }
+    logger.info("Cleanup and reaper schedulers stopped");
   }
 
   async shutdown(): Promise<void> {
