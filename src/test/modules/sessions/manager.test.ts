@@ -159,23 +159,90 @@ describe("SessionManager", () => {
     });
   });
 
+  describe("reapIdleTransports", () => {
+    it("reaps transports idle beyond IDLE_TRANSPORT_TTL_MS", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+      vi.mocked(markSessionTerminated).mockResolvedValue(undefined);
+
+      await sessionManager.createSession("user-123");
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(
+        sessionManager.getActiveTransport("mock-session-id"),
+      ).toBeDefined();
+
+      // Advance past idle TTL (5 minutes)
+      vi.advanceTimersByTime(6 * 60 * 1000);
+
+      await sessionManager.reapIdleTransports();
+
+      expect(
+        sessionManager.getActiveTransport("mock-session-id"),
+      ).toBeUndefined();
+      expect(markSessionTerminated).toHaveBeenCalledWith("mock-session-id");
+    });
+
+    it("leaves recently accessed transports alone", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+
+      await sessionManager.createSession("user-123");
+      await vi.advanceTimersByTimeAsync(0);
+
+      // Advance only 2 minutes (under 5 min TTL)
+      vi.advanceTimersByTime(2 * 60 * 1000);
+
+      await sessionManager.reapIdleTransports();
+
+      expect(
+        sessionManager.getActiveTransport("mock-session-id"),
+      ).toBeDefined();
+    });
+
+    it("does nothing when no transports are idle", async () => {
+      await sessionManager.reapIdleTransports();
+
+      expect(markSessionTerminated).not.toHaveBeenCalled();
+    });
+
+    it("handles transport close errors gracefully", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+      vi.mocked(markSessionTerminated).mockResolvedValue(undefined);
+
+      const transport = await sessionManager.createSession("user-123");
+      await vi.advanceTimersByTimeAsync(0);
+
+      vi.mocked(transport.close).mockRejectedValueOnce(
+        new Error("close failed"),
+      );
+
+      vi.advanceTimersByTime(6 * 60 * 1000);
+
+      await expect(sessionManager.reapIdleTransports()).resolves.not.toThrow();
+
+      expect(
+        sessionManager.getActiveTransport("mock-session-id"),
+      ).toBeUndefined();
+    });
+  });
+
   describe("startCleanupScheduler", () => {
-    it("starts cleanup interval", () => {
+    it("starts cleanup and reaper intervals", () => {
       sessionManager.startCleanupScheduler();
 
-      expect(vi.getTimerCount()).toBe(1);
+      // 2 intervals: hourly cleanup + 60s reaper
+      expect(vi.getTimerCount()).toBe(2);
     });
 
     it("does not start duplicate scheduler", () => {
       sessionManager.startCleanupScheduler();
       sessionManager.startCleanupScheduler();
 
-      expect(vi.getTimerCount()).toBe(1);
+      expect(vi.getTimerCount()).toBe(2);
     });
   });
 
   describe("stopCleanupScheduler", () => {
-    it("stops cleanup interval", () => {
+    it("stops both cleanup and reaper intervals", () => {
       sessionManager.startCleanupScheduler();
       sessionManager.stopCleanupScheduler();
 
