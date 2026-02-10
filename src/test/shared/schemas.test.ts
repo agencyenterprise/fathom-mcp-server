@@ -42,7 +42,9 @@ describe("schemas", () => {
       const result = listMeetingsReqSchema.parse({
         calendar_invitees_domains_type: "one_or_more_external",
       });
-      expect(result.calendar_invitees_domains_type).toBe("one_or_more_external");
+      expect(result.calendar_invitees_domains_type).toBe(
+        "one_or_more_external",
+      );
     });
 
     it("rejects invalid domain type", () => {

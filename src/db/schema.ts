@@ -101,7 +101,13 @@ export const mcpSessions = pgTable(
 
 export type FathomOAuthToken = InferSelectModel<typeof fathomOAuthTokens>;
 export type McpServerOAuthState = InferSelectModel<typeof mcpServerOAuthStates>;
-export type McpServerAccessToken = InferSelectModel<typeof mcpServerAccessTokens>;
-export type McpServerAuthorizationCode = InferSelectModel<typeof mcpServerAuthorizationCodes>;
-export type McpServerOAuthClient = InferSelectModel<typeof mcpServerOAuthClients>;
+export type McpServerAccessToken = InferSelectModel<
+  typeof mcpServerAccessTokens
+>;
+export type McpServerAuthorizationCode = InferSelectModel<
+  typeof mcpServerAuthorizationCodes
+>;
+export type McpServerOAuthClient = InferSelectModel<
+  typeof mcpServerOAuthClients
+>;
 export type McpSession = InferSelectModel<typeof mcpSessions>;

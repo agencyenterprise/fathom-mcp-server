@@ -32,13 +32,13 @@ import {
   listTeams,
   searchMeetings,
 } from "../../tools/handlers";
-import { ToolServer } from "../../tools/server";
+import { createToolServer } from "../../tools/server";
 
 type GetActiveTransportFn = (
   sessionId: string,
 ) => { userId: string } | undefined;
 
-describe("ToolServer", () => {
+describe("createToolServer", () => {
   let getActiveTransportFn: Mock<GetActiveTransportFn>;
 
   beforeEach(() => {
@@ -49,39 +49,28 @@ describe("ToolServer", () => {
     getActiveTransportFn = vi.fn<GetActiveTransportFn>();
   });
 
-  describe("constructor", () => {
+  describe("factory", () => {
     it("creates server and registers tools", () => {
-      const server = new ToolServer(getActiveTransportFn);
+      const server = createToolServer(getActiveTransportFn);
 
       expect(server).toBeDefined();
-      expect(server.getServer()).toBeDefined();
-    });
-  });
-
-  describe("getServer", () => {
-    it("returns the MCP server instance", () => {
-      const server = new ToolServer(getActiveTransportFn);
-      const mcpServer = server.getServer();
-
-      expect(mcpServer).toBeDefined();
-      expect(mcpServer.registerTool).toBeDefined();
+      expect(server.registerTool).toBeDefined();
     });
   });
 
   describe("close", () => {
     it("closes the server", async () => {
-      const server = new ToolServer(getActiveTransportFn);
-      const mcpServer = server.getServer();
+      const server = createToolServer(getActiveTransportFn);
 
       await server.close();
 
-      expect(mcpServer.close).toHaveBeenCalled();
+      expect(mockClose).toHaveBeenCalled();
     });
   });
 
   describe("getUserId", () => {
     it("throws when sessionId is missing", async () => {
-      new ToolServer(getActiveTransportFn);
+      createToolServer(getActiveTransportFn);
 
       const registeredTools = mockRegisterTool.mock.calls;
       expect(registeredTools.length).toBeGreaterThan(0);
@@ -95,7 +84,7 @@ describe("ToolServer", () => {
     it("throws when session not found", async () => {
       getActiveTransportFn.mockReturnValue(undefined);
 
-      new ToolServer(getActiveTransportFn);
+      createToolServer(getActiveTransportFn);
 
       const registeredTools = mockRegisterTool.mock.calls;
       const [, , handler] = registeredTools[0];
@@ -107,7 +96,7 @@ describe("ToolServer", () => {
     it("returns userId when session exists", async () => {
       getActiveTransportFn.mockReturnValue({ userId: "user-456" });
 
-      new ToolServer(getActiveTransportFn);
+      createToolServer(getActiveTransportFn);
 
       const registeredTools = mockRegisterTool.mock.calls;
       expect(registeredTools.length).toBe(6);
@@ -116,7 +105,7 @@ describe("ToolServer", () => {
 
   describe("tool registration", () => {
     it("registers all 6 tools", () => {
-      new ToolServer(getActiveTransportFn);
+      createToolServer(getActiveTransportFn);
 
       const registeredTools = mockRegisterTool.mock.calls;
       const toolNames = registeredTools.map(([name]) => name);
@@ -131,7 +120,7 @@ describe("ToolServer", () => {
     });
 
     it("registers tools with descriptions", () => {
-      new ToolServer(getActiveTransportFn);
+      createToolServer(getActiveTransportFn);
 
       const registeredTools = mockRegisterTool.mock.calls;
 
@@ -145,7 +134,7 @@ describe("ToolServer", () => {
 
   describe("tool handlers", () => {
     function getToolHandler(toolName: string) {
-      new ToolServer(getActiveTransportFn);
+      createToolServer(getActiveTransportFn);
       const registeredTools = mockRegisterTool.mock.calls;
       const tool = registeredTools.find(([name]) => name === toolName);
       return tool?.[2];

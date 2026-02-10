@@ -103,7 +103,11 @@ describe("FathomAPIClient", () => {
     it("throws on API error", async () => {
       vi.stubGlobal(
         "fetch",
-        vi.fn().mockResolvedValue(createMockFetchResponse({ error: "Unauthorized" }, false)),
+        vi
+          .fn()
+          .mockResolvedValue(
+            createMockFetchResponse({ error: "Unauthorized" }, false),
+          ),
       );
 
       const client = new FathomAPIClient("bad-token");
@@ -204,7 +208,11 @@ describe("FathomAPIClient", () => {
     it("fetches team members", async () => {
       const mockResponse = {
         items: [
-          { name: "John Doe", email: "john@example.com", created_at: "2024-01-01" },
+          {
+            name: "John Doe",
+            email: "john@example.com",
+            created_at: "2024-01-01",
+          },
         ],
         limit: 20,
         next_cursor: null,

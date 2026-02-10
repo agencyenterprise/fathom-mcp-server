@@ -13,16 +13,16 @@ vi.mock("../../../modules/oauth/service", () => ({
   cleanupExpiredMcpServerOAuthData: vi.fn(),
 }));
 
-const mockToolServerClose = vi.fn();
-const mockMcpServerConnect = vi.fn();
+const { mockServerClose, mockServerConnect } = vi.hoisted(() => ({
+  mockServerClose: vi.fn(),
+  mockServerConnect: vi.fn(),
+}));
 
 vi.mock("../../../tools/server", () => ({
-  ToolServer: class MockToolServer {
-    getServer = vi.fn().mockReturnValue({
-      connect: mockMcpServerConnect,
-    });
-    close = mockToolServerClose;
-  },
+  createToolServer: vi.fn().mockReturnValue({
+    connect: mockServerConnect,
+    close: mockServerClose,
+  }),
 }));
 
 vi.mock("@modelcontextprotocol/sdk/server/streamableHttp.js", () => ({
@@ -54,8 +54,8 @@ describe("SessionManager", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockToolServerClose.mockClear();
-    mockMcpServerConnect.mockClear();
+    mockServerClose.mockClear();
+    mockServerConnect.mockClear();
     vi.useFakeTimers();
     sessionManager = new SessionManager();
   });
