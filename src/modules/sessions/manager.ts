@@ -1,3 +1,4 @@
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { randomUUID } from "crypto";
 import { logger } from "../../middleware/logger";
@@ -8,7 +9,7 @@ import {
   SESSION_CLEANUP_INTERVAL_MS,
 } from "../../shared/constants";
 import { AppError } from "../../shared/errors";
-import { ToolServer } from "../../tools/server";
+import { createToolServer } from "../../tools/server";
 import { cleanupExpiredMcpServerOAuthData } from "../oauth/service";
 import {
   deleteSessionsByIds,
@@ -19,21 +20,18 @@ import {
 
 interface ActiveTransport {
   transport: StreamableHTTPServerTransport;
+  server: McpServer;
   userId: string;
   lastAccessedAt: Date;
 }
 
 export class SessionManager {
   private activeTransports: Map<string, ActiveTransport>;
-  private toolServer: ToolServer;
   private cleanupIntervalId: NodeJS.Timeout | null = null;
   private reapIntervalId: NodeJS.Timeout | null = null;
 
   constructor() {
     this.activeTransports = new Map();
-    this.toolServer = new ToolServer((sessionId) =>
-      this.getActiveTransport(sessionId),
-    );
   }
 
   async createSession(userId: string): Promise<StreamableHTTPServerTransport> {
@@ -43,7 +41,7 @@ export class SessionManager {
       onsessioninitialized: async (sessionId) => {
         try {
           await insertSession(sessionId, userId);
-          this.cacheTransport(sessionId, userId, transport);
+          this.cacheTransport(sessionId, userId, transport, server);
         } catch (error) {
           logger.error(
             { sessionId, userId, error },
@@ -69,7 +67,10 @@ export class SessionManager {
       }
     };
 
-    await this.toolServer.getServer().connect(transport);
+    const server = createToolServer((sessionId) =>
+      this.getActiveTransport(sessionId),
+    );
+    await server.connect(transport);
 
     return transport;
   }
@@ -78,9 +79,11 @@ export class SessionManager {
     sessionId: string,
     userId: string,
     transport: StreamableHTTPServerTransport,
+    server: McpServer,
   ): void {
     this.activeTransports.set(sessionId, {
       transport,
+      server,
       userId,
       lastAccessedAt: new Date(),
     });
@@ -121,9 +124,9 @@ export class SessionManager {
 
     if (cachedTransport) {
       try {
-        await cachedTransport.transport.close();
+        await cachedTransport.server.close();
       } catch (error) {
-        logger.error({ sessionId, error }, "Error closing transport");
+        logger.error({ sessionId, error }, "Error closing server");
       }
     }
 
@@ -169,9 +172,9 @@ export class SessionManager {
       const entry = this.activeTransports.get(sessionId);
       if (entry) {
         try {
-          await entry.transport.close();
+          await entry.server.close();
         } catch (error) {
-          logger.error({ sessionId, error }, "Error closing idle transport");
+          logger.error({ sessionId, error }, "Error closing idle server");
         }
         this.activeTransports.delete(sessionId);
       }
@@ -199,11 +202,11 @@ export class SessionManager {
           const cachedTransport = this.activeTransports.get(sessionId);
           if (cachedTransport) {
             try {
-              await cachedTransport.transport.close();
+              await cachedTransport.server.close();
             } catch (error) {
               logger.error(
                 { sessionId, error },
-                "Error closing expired transport",
+                "Error closing expired server",
               );
             }
             this.activeTransports.delete(sessionId);
@@ -277,14 +280,14 @@ export class SessionManager {
     this.stopCleanupScheduler();
 
     const closePromises = Array.from(this.activeTransports.entries()).map(
-      async ([sessionId, { transport }]) => {
+      async ([sessionId, { server }]) => {
         try {
-          await transport.close();
+          await server.close();
           await this.persistTermination(sessionId);
         } catch (error) {
           logger.error(
             { sessionId, error },
-            "Error closing transport during shutdown",
+            "Error closing server during shutdown",
           );
         }
       },
@@ -292,8 +295,6 @@ export class SessionManager {
 
     await Promise.all(closePromises);
     this.activeTransports.clear();
-
-    await this.toolServer.close();
 
     logger.info("Session manager shutdown complete");
   }
