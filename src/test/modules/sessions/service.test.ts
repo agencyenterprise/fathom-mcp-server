@@ -80,10 +80,12 @@ describe("sessions/service", () => {
     it("returns expired session ids", async () => {
       vi.mocked(db.select).mockReturnValue({
         from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([
-            { sessionId: "expired-1" },
-            { sessionId: "expired-2" },
-          ]),
+          where: vi
+            .fn()
+            .mockResolvedValue([
+              { sessionId: "expired-1" },
+              { sessionId: "expired-2" },
+            ]),
         }),
       } as never);
 
