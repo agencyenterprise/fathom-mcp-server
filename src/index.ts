@@ -21,6 +21,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicPath = path.join(__dirname, "public");
 
 const app = express();
+app.set("trust proxy", true);
 
 const sessionManager = new SessionManager();
 app.locals.sessionManager = sessionManager;
@@ -38,6 +39,10 @@ if (config.nodeEnv !== "production") {
 
 app.use(express.static(publicPath));
 app.use(requestLogger);
+
+app.use(["/wp-admin/*", "/wordpress/*", "/*.php"], (_req, res) => {
+  res.status(404).end();
+});
 
 app.use("/docs", docsRouter);
 app.use("/health", healthRouter);

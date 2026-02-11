@@ -12,6 +12,7 @@ function createMockRequest(authHeader?: string): Request {
   return {
     headers: authHeader ? { authorization: authHeader } : {},
     userId: undefined,
+    socket: { remoteAddress: "127.0.0.1" },
   } as unknown as Request;
 }
 
