@@ -60,10 +60,11 @@ export function createToolServer(
     {
       title: "List Meetings",
       description:
-        "List Fathom meetings with optional filters: cursor (pagination), " +
+        "List Fathom meetings with optional filters: cursor (pagination; pass the next_cursor from the previous response to get the next page), " +
         "created_after, created_before (ISO timestamps), calendar_invitees_domains (company domains), " +
         "calendar_invitees_domains_type (all/only_internal/one_or_more_external), " +
-        "teams (team names), recorded_by (recorder emails), include_action_items (boolean), include_crm_matches (boolean)",
+        "teams (team names), recorded_by (recorder emails), include_action_items (boolean), include_crm_matches (boolean). " +
+        "Response includes next_cursor: when non-null, call again with cursor set to that value to fetch more meetings.",
       inputSchema: listMeetingsReqSchema.shape,
       annotations: { readOnlyHint: true },
     },
@@ -79,9 +80,10 @@ export function createToolServer(
       title: "Search Meetings",
       description:
         "Search Fathom meetings by title or meeting_title. Required: query (search term). " +
-        "Optional filters: cursor (pagination), created_after, created_before (ISO timestamps), " +
-        "calendar_invitees_domains, calendar_invitees_domains_type, teams, recorded_by, " +
-        "include_action_items (boolean), include_crm_matches (boolean)",
+        "Optional filters: cursor (pagination; pass next_cursor from the previous response to get the next page), " +
+        "created_after, created_before (ISO timestamps), calendar_invitees_domains, calendar_invitees_domains_type, " +
+        "teams, recorded_by, include_action_items (boolean), include_crm_matches (boolean). " +
+        "Response includes next_cursor: when non-null, call again with cursor set to that value to search more meetings.",
       inputSchema: searchMeetingsReqSchema.shape,
       annotations: { readOnlyHint: true },
     },
