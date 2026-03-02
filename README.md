@@ -41,7 +41,7 @@ That's it. Ask Claude about your meetings.
 | Tool                | Description                                             | Docs                                                                                    |
 | ------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | `list_meetings`     | List meetings with filters (date, team, recorder, etc.) | [Fathom API](https://developers.fathom.ai/api-reference/meetings/list-meetings)         |
-| `search_meetings`   | Search meetings by title with optional filters          | [MCP Custom](#custom-mcp-tools)                                                         |
+| `search_meetings`   | Search meetings by title, host, or attendee information | [MCP Custom](#custom-mcp-tools)                                                         |
 | `get_transcript`    | Get full transcript for a recording                     | [Fathom API](https://developers.fathom.ai/api-reference/recordings/get-transcript)      |
 | `get_summary`       | Get AI-generated summary for a recording                | [Fathom API](https://developers.fathom.ai/api-reference/recordings/get-summary)         |
 | `list_teams`        | List all accessible teams                               | [Fathom API](https://developers.fathom.ai/api-reference/teams/list-teams)               |
@@ -51,7 +51,7 @@ That's it. Ask Claude about your meetings.
 
 #### `search_meetings`
 
-Search Fathom meetings by title or meeting_title. This is an MCP-native tool that performs client-side filtering since Fathom's API doesn't provide a search endpoint. For users with many meetings, use `list_meetings` with date filters for better performance.
+Search Fathom meetings by title, meeting title, host name, host email, or attendee name/email. Automatically scans up to 5 pages of results. This is an MCP-native tool that performs client-side filtering since Fathom's API doesn't provide a search endpoint.
 
 See the [Fathom MCP Server documentation](https://www.fathom-mcp-server.com/docs) for full request and response parameters.
 

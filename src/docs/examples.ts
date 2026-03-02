@@ -111,4 +111,6 @@ export const searchMeetingsResponseExample = {
       },
     },
   ],
+  next_cursor: "page-token-abc123",
+  total_searched: 42,
 };

@@ -9,16 +9,18 @@ import {
 } from "./examples";
 
 const searchMeetingsRequest = searchMeetingsReqSchema.meta({
-  description: "Search parameters for finding meetings by title",
+  description: "Search parameters for finding meetings by title, host, or attendee information",
   example: searchMeetingsRequestExample,
 });
 
 const searchMeetingsResponse = z
   .object({
     items: listMeetingsResSchema.shape.items,
+    next_cursor: z.string().nullable(),
+    total_searched: z.number(),
   })
   .meta({
-    description: "Filtered list of meetings matching the search query",
+    description: "Filtered list of meetings matching the search query with pagination metadata",
     example: searchMeetingsResponseExample,
   });
 
@@ -43,9 +45,9 @@ export const openapiDocument: oas31.OpenAPIObject = createDocument({
         operationId: "search_meetings",
         summary: "Search Meetings",
         description:
-          "Search Fathom meetings by title or meeting_title. This is an MCP-native tool that " +
-          "performs client-side filtering since Fathom's API doesn't provide a search endpoint. " +
-          "For users with many meetings, consider using list_meetings with date filters for better performance.",
+          "Search Fathom meetings by title, meeting title, host name, host email, or attendee name/email. " +
+          "Automatically scans up to 5 pages of results. This is an MCP-native tool that " +
+          "performs client-side filtering since Fathom's API doesn't provide a search endpoint.",
         tags: ["Custom MCP Tools"],
         requestBody: {
           required: true,

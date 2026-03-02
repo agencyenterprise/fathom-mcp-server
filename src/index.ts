@@ -40,19 +40,37 @@ if (config.nodeEnv !== "production") {
 app.use(express.static(publicPath));
 app.use(requestLogger);
 
-app.use(["/wp-admin/*path", "/wordpress/*path"], (_req, res) => {
-  res.status(404).end();
-});
-
-app.use("/*path{.php}", (_req, res) => {
-  res.status(404).end();
-});
-
 app.use("/docs", docsRouter);
 app.use("/health", healthRouter);
 app.use("/.well-known", wellKnownRouter);
 app.use("/oauth", oauthRouter);
 app.use("/mcp", bearerAuthMiddleware, userRateLimiter, mcpRouter);
+
+// Block common attack vectors and malicious bots (Express 5 syntax)
+app.use(
+  [
+    "/wp-admin/*path",
+    "/wordpress/*path",
+    "/wp-content/*path",
+    "/wp-includes/*path",
+  ],
+  (_req, res) => {
+    res.status(404).end();
+  },
+);
+
+// Block PHP files (Express 5 syntax for files ending in .php)
+app.use("/*path.php", (_req, res) => {
+  res.status(404).end();
+});
+
+// Block other common malicious paths (Express 5 syntax)
+app.use(
+  ["/phpmyadmin/*path", "/admin/*path", "/.env*path", "/config/*path"],
+  (_req, res) => {
+    res.status(404).end();
+  },
+);
 
 app.get("/api", (_req, res) => {
   res.json({
