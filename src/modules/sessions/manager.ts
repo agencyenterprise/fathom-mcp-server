@@ -112,6 +112,7 @@ export class SessionManager {
 
   async handleSseMessage(
     sessionId: string,
+    userId: string,
     req: Request,
     res: Response,
   ): Promise<void> {
@@ -119,6 +120,10 @@ export class SessionManager {
 
     if (!cached) {
       throw AppError.notFound("Session");
+    }
+
+    if (cached.userId !== userId) {
+      throw AppError.forbidden("Session does not belong to this user");
     }
 
     cached.lastAccessedAt = new Date();
@@ -408,7 +413,12 @@ export class SessionManager {
     logger.info("Session manager shutdown complete");
   }
 
-  getActiveTransport(sessionId: string): ActiveTransport | ActiveSseTransport | undefined {
-    return this.activeTransports.get(sessionId) ?? this.activeSseTransports.get(sessionId);
+  getActiveTransport(
+    sessionId: string,
+  ): ActiveTransport | ActiveSseTransport | undefined {
+    return (
+      this.activeTransports.get(sessionId) ??
+      this.activeSseTransports.get(sessionId)
+    );
   }
 }

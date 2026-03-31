@@ -305,7 +305,28 @@ describe("SessionManager", () => {
       const mockRes = {} as never;
 
       await expect(
-        sessionManager.handleSseMessage("nonexistent", mockReq, mockRes),
+        sessionManager.handleSseMessage(
+          "nonexistent",
+          "user-123",
+          mockReq,
+          mockRes,
+        ),
+      ).rejects.toThrow();
+    });
+
+    it("throws when session belongs to a different user", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+      const mockRes = {} as unknown;
+
+      await sessionManager.createSseSession("user-123", mockRes as never);
+
+      await expect(
+        sessionManager.handleSseMessage(
+          "mock-sse-session-id",
+          "different-user",
+          {} as never,
+          {} as never,
+        ),
       ).rejects.toThrow();
     });
 
@@ -315,13 +336,11 @@ describe("SessionManager", () => {
 
       await sessionManager.createSseSession("user-123", mockRes as never);
 
-      const mockReq = {} as never;
-      const mockReqRes = {} as never;
-
       await sessionManager.handleSseMessage(
         "mock-sse-session-id",
-        mockReq,
-        mockReqRes,
+        "user-123",
+        {} as never,
+        {} as never,
       );
 
       expect(mockServerConnect).toHaveBeenCalled();

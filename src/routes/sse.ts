@@ -26,5 +26,5 @@ sseMessageRouter.post("/", (req, res, next) => {
     return;
   }
 
-  sessionManager.handleSseMessage(sessionId, req, res).catch(next);
+  sessionManager.handleSseMessage(sessionId, req.userId!, req, res).catch(next);
 });
