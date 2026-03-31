@@ -82,6 +82,34 @@ describe("sessions/controller", () => {
       await expect(routeToSessionOrInitialize(req, res)).rejects.toThrow();
     });
 
+    it("creates a new session when stale sessionId is provided with an initialize request", async () => {
+      vi.mocked(isInitializeRequest).mockReturnValue(true);
+      const mockTransport = { handleRequest: vi.fn() };
+      const req = createMockRequest({
+        headers: { "mcp-session-id": "stale-session-id" },
+        body: { method: "initialize" },
+      });
+      const res = createMockResponse();
+
+      (
+        req as { _sessionManager: ReturnType<typeof createMockSessionManager> }
+      )._sessionManager.retrieveSession.mockResolvedValue(null);
+      (
+        req as { _sessionManager: ReturnType<typeof createMockSessionManager> }
+      )._sessionManager.createSession.mockResolvedValue(mockTransport);
+
+      await routeToSessionOrInitialize(req, res);
+
+      expect(
+        (
+          req as {
+            _sessionManager: ReturnType<typeof createMockSessionManager>;
+          }
+        )._sessionManager.createSession,
+      ).toHaveBeenCalledWith("user-123");
+      expect(mockTransport.handleRequest).toHaveBeenCalled();
+    });
+
     it("throws when session belongs to different user", async () => {
       const mockTransport = { handleRequest: vi.fn() };
       const req = createMockRequest({
