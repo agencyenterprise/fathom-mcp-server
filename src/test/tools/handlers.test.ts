@@ -3,8 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FathomAPIClient } from "../../modules/fathom/api";
 import { AppError } from "../../shared/errors";
 import {
+  getActionItems,
+  getMeetingContext,
   getSummary,
   getTranscript,
+  getWeeklyRecap,
   listMeetings,
   listTeamMembers,
   listTeams,
@@ -690,6 +693,339 @@ describe("tools/handlers", () => {
 
     it("returns error when query empty", async () => {
       const result = await searchMeetings("user-123", { query: "" });
+
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  describe("getTranscript speaker filter", () => {
+    it("returns full transcript when no speaker filter provided", async () => {
+      mockClient.getTranscript.mockResolvedValue({
+        transcript: [
+          { speaker: { display_name: "Alice" }, text: "Hello", timestamp: "00:00:01" },
+          { speaker: { display_name: "Bob" }, text: "Hi there", timestamp: "00:00:05" },
+        ],
+      });
+
+      const result = await getTranscript("user-123", { recording_id: 1 });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(getTextContent(result));
+      expect(parsed.transcript).toHaveLength(2);
+    });
+
+    it("filters transcript to only the specified speaker", async () => {
+      mockClient.getTranscript.mockResolvedValue({
+        transcript: [
+          { speaker: { display_name: "Alice" }, text: "Hello", timestamp: "00:00:01" },
+          { speaker: { display_name: "Bob" }, text: "Hi there", timestamp: "00:00:05" },
+          { speaker: { display_name: "Alice" }, text: "How are you?", timestamp: "00:00:10" },
+        ],
+      });
+
+      const result = await getTranscript("user-123", { recording_id: 1, speaker: "Alice" });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(getTextContent(result));
+      expect(parsed.transcript).toHaveLength(2);
+      expect(parsed.transcript[0].text).toBe("Hello");
+      expect(parsed.transcript[1].text).toBe("How are you?");
+    });
+
+    it("speaker filter is case-insensitive", async () => {
+      mockClient.getTranscript.mockResolvedValue({
+        transcript: [
+          { speaker: { display_name: "Alice Smith" }, text: "Hello", timestamp: "00:00:01" },
+          { speaker: { display_name: "Bob" }, text: "Hi", timestamp: "00:00:05" },
+        ],
+      });
+
+      const result = await getTranscript("user-123", { recording_id: 1, speaker: "alice" });
+
+      const parsed = JSON.parse(getTextContent(result));
+      expect(parsed.transcript).toHaveLength(1);
+      expect(parsed.transcript[0].speaker.display_name).toBe("Alice Smith");
+    });
+
+    it("returns empty transcript when speaker not found", async () => {
+      mockClient.getTranscript.mockResolvedValue({
+        transcript: [
+          { speaker: { display_name: "Alice" }, text: "Hello", timestamp: "00:00:01" },
+        ],
+      });
+
+      const result = await getTranscript("user-123", { recording_id: 1, speaker: "Charlie" });
+
+      const parsed = JSON.parse(getTextContent(result));
+      expect(parsed.transcript).toHaveLength(0);
+    });
+  });
+
+  describe("searchMeetings max_pages", () => {
+    const noMatch = {
+      recorded_by: { name: "Host", email: "host@example.com", email_domain: "example.com", team: null },
+      calendar_invitees: [],
+    };
+
+    it("respects max_pages param when provided", async () => {
+      mockClient.listMeetings.mockResolvedValue({
+        items: [{ title: "No Match", meeting_title: null, recording_id: 1, ...noMatch }],
+        limit: 20,
+        next_cursor: "always-more",
+      });
+
+      await searchMeetings("user-123", { query: "target", max_pages: 2 });
+
+      expect(mockClient.listMeetings).toHaveBeenCalledTimes(2);
+    });
+
+    it("falls back to MAX_SEARCH_PAGES when max_pages not provided", async () => {
+      mockClient.listMeetings.mockResolvedValue({
+        items: [{ title: "No Match", meeting_title: null, recording_id: 1, ...noMatch }],
+        limit: 20,
+        next_cursor: "always-more",
+      });
+
+      await searchMeetings("user-123", { query: "target" });
+
+      expect(mockClient.listMeetings).toHaveBeenCalledTimes(5);
+    });
+  });
+
+  describe("getActionItems", () => {
+    const meetingWithActions = (
+      id: number,
+      items: { description: string; completed: boolean; assigneeName: string }[],
+    ) => ({
+      title: `Meeting ${id}`,
+      meeting_title: null,
+      recording_id: id,
+      created_at: "2024-01-15T10:00:00Z",
+      recorded_by: { name: "Host", email: "host@example.com", email_domain: "example.com", team: null },
+      calendar_invitees: [],
+      action_items: items.map((item) => ({
+        description: item.description,
+        completed: item.completed,
+        user_generated: false,
+        recording_timestamp: "00:01:00",
+        recording_playback_url: "https://example.com",
+        assignee: { name: item.assigneeName, email: null, team: null },
+      })),
+    });
+
+    it("returns consolidated action items across meetings", async () => {
+      mockClient.listMeetings.mockResolvedValue({
+        items: [
+          meetingWithActions(1, [{ description: "Send report", completed: false, assigneeName: "Alice" }]),
+          meetingWithActions(2, [{ description: "Review PR", completed: true, assigneeName: "Bob" }]),
+        ],
+        limit: 20,
+        next_cursor: null,
+      });
+
+      const result = await getActionItems("user-123", {});
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(getTextContent(result));
+      expect(parsed.action_items).toHaveLength(2);
+    });
+
+    it("includes meeting title and date with each action item", async () => {
+      mockClient.listMeetings.mockResolvedValue({
+        items: [
+          meetingWithActions(1, [{ description: "Follow up with client", completed: false, assigneeName: "Alice" }]),
+        ],
+        limit: 20,
+        next_cursor: null,
+      });
+
+      const result = await getActionItems("user-123", {});
+
+      const parsed = JSON.parse(getTextContent(result));
+      expect(parsed.action_items[0].meeting_title).toBe("Meeting 1");
+      expect(parsed.action_items[0].meeting_date).toBe("2024-01-15T10:00:00Z");
+      expect(parsed.action_items[0].description).toBe("Follow up with client");
+    });
+
+    it("filters to only incomplete items when completed is false", async () => {
+      mockClient.listMeetings.mockResolvedValue({
+        items: [
+          meetingWithActions(1, [
+            { description: "Open task", completed: false, assigneeName: "Alice" },
+            { description: "Done task", completed: true, assigneeName: "Bob" },
+          ]),
+        ],
+        limit: 20,
+        next_cursor: null,
+      });
+
+      const result = await getActionItems("user-123", { completed: false });
+
+      const parsed = JSON.parse(getTextContent(result));
+      expect(parsed.action_items).toHaveLength(1);
+      expect(parsed.action_items[0].description).toBe("Open task");
+    });
+
+    it("returns empty array when no meetings have action items", async () => {
+      mockClient.listMeetings.mockResolvedValue({
+        items: [{ ...meetingWithActions(1, []), action_items: null }],
+        limit: 20,
+        next_cursor: null,
+      });
+
+      const result = await getActionItems("user-123", {});
+
+      const parsed = JSON.parse(getTextContent(result));
+      expect(parsed.action_items).toHaveLength(0);
+    });
+
+    it("passes date filters and include_action_items to list_meetings", async () => {
+      mockClient.listMeetings.mockResolvedValue({ items: [], limit: 20, next_cursor: null });
+
+      await getActionItems("user-123", {
+        created_after: "2024-01-01T00:00:00Z",
+        created_before: "2024-01-31T23:59:59Z",
+      });
+
+      expect(mockClient.listMeetings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include_action_items: true,
+          created_after: "2024-01-01T00:00:00Z",
+          created_before: "2024-01-31T23:59:59Z",
+        }),
+      );
+    });
+
+    it("returns error on invalid params", async () => {
+      const result = await getActionItems("user-123", { created_after: "not-a-date" });
+
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  describe("getMeetingContext", () => {
+    const meetingWithSummary = (id: number, title: string, inviteeName: string, summaryText: string) => ({
+      title,
+      meeting_title: null,
+      recording_id: id,
+      created_at: "2024-01-15T10:00:00Z",
+      recorded_by: { name: "Host", email: "host@example.com", email_domain: "example.com", team: null },
+      calendar_invitees: [{ name: inviteeName, email: `${inviteeName.toLowerCase()}@example.com`, email_domain: "example.com", is_external: true }],
+      default_summary: { template_name: "Default", markdown_formatted: summaryText },
+    });
+
+    it("returns meetings matching the attendee query with their summaries", async () => {
+      mockClient.listMeetings.mockResolvedValue({
+        items: [
+          meetingWithSummary(1, "Sales Call", "Jane Prospect", "Discussed pricing"),
+          meetingWithSummary(2, "Team Sync", "Bob Internal", "Sprint review"),
+        ],
+        limit: 20,
+        next_cursor: null,
+      });
+
+      const result = await getMeetingContext("user-123", { query: "jane" });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(getTextContent(result));
+      expect(parsed.meetings).toHaveLength(1);
+      expect(parsed.meetings[0].title).toBe("Sales Call");
+    });
+
+    it("includes summary in each matched meeting", async () => {
+      mockClient.listMeetings.mockResolvedValue({
+        items: [meetingWithSummary(1, "Client Call", "Jane", "Key points: budget approved")],
+        limit: 20,
+        next_cursor: null,
+      });
+
+      const result = await getMeetingContext("user-123", { query: "jane" });
+
+      const parsed = JSON.parse(getTextContent(result));
+      expect(parsed.meetings[0].summary).toBe("Key points: budget approved");
+    });
+
+    it("returns error when query is missing", async () => {
+      const result = await getMeetingContext("user-123", {});
+
+      expect(result.isError).toBe(true);
+    });
+
+    it("returns error when query is empty", async () => {
+      const result = await getMeetingContext("user-123", { query: "" });
+
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  describe("getWeeklyRecap", () => {
+    const meetingWithSummary = (id: number, title: string, summaryText: string | null) => ({
+      title,
+      meeting_title: null,
+      recording_id: id,
+      created_at: "2024-01-15T10:00:00Z",
+      recorded_by: { name: "Host", email: "host@example.com", email_domain: "example.com", team: null },
+      calendar_invitees: [],
+      default_summary: summaryText ? { template_name: "Default", markdown_formatted: summaryText } : null,
+    });
+
+    it("returns meetings with summaries", async () => {
+      mockClient.listMeetings.mockResolvedValue({
+        items: [
+          meetingWithSummary(1, "Standup", "Quick sync"),
+          meetingWithSummary(2, "Planning", "Roadmap review"),
+        ],
+        limit: 20,
+        next_cursor: null,
+      });
+
+      const result = await getWeeklyRecap("user-123", {});
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(getTextContent(result));
+      expect(parsed.meetings).toHaveLength(2);
+      expect(parsed.total_meetings).toBe(2);
+    });
+
+    it("includes summary text for each meeting", async () => {
+      mockClient.listMeetings.mockResolvedValue({
+        items: [meetingWithSummary(1, "Standup", "Discussed blockers")],
+        limit: 20,
+        next_cursor: null,
+      });
+
+      const result = await getWeeklyRecap("user-123", {});
+
+      const parsed = JSON.parse(getTextContent(result));
+      expect(parsed.meetings[0].summary).toBe("Discussed blockers");
+    });
+
+    it("handles meetings with no summary gracefully", async () => {
+      mockClient.listMeetings.mockResolvedValue({
+        items: [meetingWithSummary(1, "Standup", null)],
+        limit: 20,
+        next_cursor: null,
+      });
+
+      const result = await getWeeklyRecap("user-123", {});
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(getTextContent(result));
+      expect(parsed.meetings[0].summary).toBeNull();
+    });
+
+    it("passes created_after to list_meetings based on days param", async () => {
+      mockClient.listMeetings.mockResolvedValue({ items: [], limit: 20, next_cursor: null });
+
+      await getWeeklyRecap("user-123", { days: 14 });
+
+      expect(mockClient.listMeetings).toHaveBeenCalledWith(
+        expect.objectContaining({ created_after: expect.any(String) }),
+      );
+    });
+
+    it("returns error on invalid days param", async () => {
+      const result = await getWeeklyRecap("user-123", { days: 0 });
 
       expect(result.isError).toBe(true);
     });

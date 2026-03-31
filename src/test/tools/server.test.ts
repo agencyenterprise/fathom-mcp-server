@@ -24,11 +24,17 @@ vi.mock("../../tools/handlers", () => ({
   getSummary: vi.fn().mockResolvedValue({ content: [] }),
   listTeams: vi.fn().mockResolvedValue({ content: [] }),
   listTeamMembers: vi.fn().mockResolvedValue({ content: [] }),
+  getActionItems: vi.fn().mockResolvedValue({ content: [] }),
+  getMeetingContext: vi.fn().mockResolvedValue({ content: [] }),
+  getWeeklyRecap: vi.fn().mockResolvedValue({ content: [] }),
 }));
 
 import {
+  getActionItems,
+  getMeetingContext,
   getSummary,
   getTranscript,
+  getWeeklyRecap,
   listMeetings,
   listTeamMembers,
   listTeams,
@@ -102,12 +108,12 @@ describe("createToolServer", () => {
       createToolServer(getActiveTransportFn);
 
       const registeredTools = mockRegisterTool.mock.calls;
-      expect(registeredTools.length).toBe(6);
+      expect(registeredTools.length).toBe(9);
     });
   });
 
   describe("tool registration", () => {
-    it("registers all 6 tools", () => {
+    it("registers all 9 tools", () => {
       createToolServer(getActiveTransportFn);
 
       const registeredTools = mockRegisterTool.mock.calls;
@@ -119,7 +125,10 @@ describe("createToolServer", () => {
       expect(toolNames).toContain("get_summary");
       expect(toolNames).toContain("list_teams");
       expect(toolNames).toContain("list_team_members");
-      expect(toolNames).toHaveLength(6);
+      expect(toolNames).toContain("get_action_items");
+      expect(toolNames).toContain("get_meeting_context");
+      expect(toolNames).toContain("get_weekly_recap");
+      expect(toolNames).toHaveLength(9);
     });
 
     it("registers tools with descriptions", () => {
@@ -140,10 +149,10 @@ describe("createToolServer", () => {
       const registeredPrompts = mockRegisterPrompt.mock.calls;
       const promptNames = registeredPrompts.map(([name]) => name);
 
-      expect(promptNames).toContain("latest_meeting_short_summary");
+      expect(promptNames).toContain("latest_meeting_summary");
 
       const [, config] = registeredPrompts.find(
-        ([name]) => name === "latest_meeting_short_summary",
+        ([name]) => name === "latest_meeting_summary",
       )!;
       expect(config.title).toBeDefined();
       expect(config.description).toBeDefined();
@@ -220,6 +229,36 @@ describe("createToolServer", () => {
       await handler(args, mockExtra);
 
       expect(listTeamMembers).toHaveBeenCalledWith("user-123", args);
+    });
+
+    it("get_action_items calls handler with userId", async () => {
+      const handler = getToolHandler("get_action_items");
+      const mockExtra = { sessionId: "session-123" };
+      const args = { completed: false };
+
+      await handler(args, mockExtra);
+
+      expect(getActionItems).toHaveBeenCalledWith("user-123", args);
+    });
+
+    it("get_meeting_context calls handler with userId", async () => {
+      const handler = getToolHandler("get_meeting_context");
+      const mockExtra = { sessionId: "session-123" };
+      const args = { query: "jane" };
+
+      await handler(args, mockExtra);
+
+      expect(getMeetingContext).toHaveBeenCalledWith("user-123", args);
+    });
+
+    it("get_weekly_recap calls handler with userId", async () => {
+      const handler = getToolHandler("get_weekly_recap");
+      const mockExtra = { sessionId: "session-123" };
+      const args = { days: 7 };
+
+      await handler(args, mockExtra);
+
+      expect(getWeeklyRecap).toHaveBeenCalledWith("user-123", args);
     });
   });
 });
