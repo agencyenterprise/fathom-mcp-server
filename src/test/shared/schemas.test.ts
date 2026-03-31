@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  getActionItemsReqSchema,
+  getMeetingContextReqSchema,
+  getTranscriptReqSchema,
+  getWeeklyRecapReqSchema,
   listMeetingsReqSchema,
   listTeamMembersReqSchema,
   listTeamsReqSchema,
@@ -96,6 +100,15 @@ describe("schemas", () => {
         }),
       ).toThrow();
     });
+
+    it("accepts max_pages", () => {
+      const result = searchMeetingsReqSchema.parse({ query: "test", max_pages: 10 });
+      expect(result.max_pages).toBe(10);
+    });
+
+    it("rejects max_pages of 0", () => {
+      expect(() => searchMeetingsReqSchema.parse({ query: "test", max_pages: 0 })).toThrow();
+    });
   });
 
   describe("recordingReqSchema", () => {
@@ -113,8 +126,76 @@ describe("schemas", () => {
     });
   });
 
-  describe("listTeamsReqSchema", () => {
+  describe("getTranscriptReqSchema", () => {
+    it("requires recording_id", () => {
+      expect(() => getTranscriptReqSchema.parse({})).toThrow();
+    });
+
+    it("accepts valid recording_id", () => {
+      const result = getTranscriptReqSchema.parse({ recording_id: 123 });
+      expect(result.recording_id).toBe(123);
+    });
+
+    it("rejects recording_id of 0", () => {
+      expect(() => getTranscriptReqSchema.parse({ recording_id: 0 })).toThrow();
+    });
+
+    it("accepts optional speaker filter", () => {
+      const result = getTranscriptReqSchema.parse({ recording_id: 123, speaker: "Alice" });
+      expect(result.speaker).toBe("Alice");
+    });
+  });
+
+  describe("getActionItemsReqSchema", () => {
     it("accepts empty object", () => {
+      expect(() => getActionItemsReqSchema.parse({})).not.toThrow();
+    });
+
+    it("accepts date filters", () => {
+      const result = getActionItemsReqSchema.parse({
+        created_after: "2024-01-01T00:00:00Z",
+        created_before: "2024-01-31T23:59:59Z",
+      });
+      expect(result.created_after).toBe("2024-01-01T00:00:00Z");
+    });
+
+    it("accepts completed filter", () => {
+      const result = getActionItemsReqSchema.parse({ completed: false });
+      expect(result.completed).toBe(false);
+    });
+  });
+
+  describe("getMeetingContextReqSchema", () => {
+    it("requires query", () => {
+      expect(() => getMeetingContextReqSchema.parse({})).toThrow();
+    });
+
+    it("rejects empty query", () => {
+      expect(() => getMeetingContextReqSchema.parse({ query: "" })).toThrow();
+    });
+
+    it("accepts valid query", () => {
+      const result = getMeetingContextReqSchema.parse({ query: "jane" });
+      expect(result.query).toBe("jane");
+    });
+  });
+
+  describe("getWeeklyRecapReqSchema", () => {
+    it("accepts empty object", () => {
+      expect(() => getWeeklyRecapReqSchema.parse({})).not.toThrow();
+    });
+
+    it("accepts custom days", () => {
+      const result = getWeeklyRecapReqSchema.parse({ days: 14 });
+      expect(result.days).toBe(14);
+    });
+
+    it("rejects days of 0", () => {
+      expect(() => getWeeklyRecapReqSchema.parse({ days: 0 })).toThrow();
+    });
+  });
+
+  describe("listTeamsReqSchema", () => {    it("accepts empty object", () => {
       const result = listTeamsReqSchema.parse({});
       expect(result).toEqual({});
     });

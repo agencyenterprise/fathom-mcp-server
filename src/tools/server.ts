@@ -7,6 +7,10 @@ import type {
 import { config } from "../shared/config";
 import { AppError } from "../shared/errors";
 import {
+  getActionItemsReqSchema,
+  getMeetingContextReqSchema,
+  getTranscriptReqSchema,
+  getWeeklyRecapReqSchema,
   listMeetingsReqSchema,
   listTeamMembersReqSchema,
   listTeamsReqSchema,
@@ -14,8 +18,11 @@ import {
   searchMeetingsReqSchema,
 } from "../shared/schemas";
 import {
+  getActionItems,
+  getMeetingContext,
   getSummary,
   getTranscript,
+  getWeeklyRecap,
   listMeetings,
   listTeamMembers,
   listTeams,
@@ -87,10 +94,10 @@ export function createToolServer(
       title: "Search Meetings",
       description:
         "Search Fathom meetings by title, meeting title, host name, host email, or attendee name/email. " +
-        "Automatically scans up to 5 pages of results. Required: query (search term). " +
-        "Optional filters: cursor (pass next_cursor from a previous response to continue searching from that point), " +
-        "created_after, created_before (ISO timestamps), calendar_invitees_domains, calendar_invitees_domains_type, " +
-        "teams, recorded_by, include_action_items (boolean), include_crm_matches (boolean). " +
+        "Automatically scans up to 5 pages of results by default. Required: query (search term). " +
+        "Optional filters: cursor, created_after, created_before (ISO timestamps), calendar_invitees_domains, " +
+        "calendar_invitees_domains_type, teams, recorded_by, include_action_items (boolean), " +
+        "include_crm_matches (boolean), max_pages (override the 5 page default). " +
         "Response includes next_cursor (non-null means more pages exist) and total_searched (meetings scanned).",
       inputSchema: searchMeetingsReqSchema.shape,
       annotations: { readOnlyHint: true },
@@ -105,8 +112,10 @@ export function createToolServer(
     "get_transcript",
     {
       title: "Get Transcript",
-      description: "Get the full transcript for a specific meeting recording",
-      inputSchema: recordingReqSchema.shape,
+      description:
+        "Get the transcript for a specific meeting recording. " +
+        "Optional: speaker (filter entries to only a specific speaker name).",
+      inputSchema: getTranscriptReqSchema.shape,
       annotations: { readOnlyHint: true },
     },
     async (args, extra) => {
@@ -157,6 +166,55 @@ export function createToolServer(
     async (args, extra) => {
       const userId = getUserId(getActiveTransportFn, extra);
       return listTeamMembers(userId, args);
+    },
+  );
+
+  server.registerTool(
+    "get_action_items",
+    {
+      title: "Get Action Items",
+      description:
+        "Aggregate action items across meetings. Optional: created_after, created_before (ISO timestamps), " +
+        "completed (true for completed only, false for outstanding only).",
+      inputSchema: getActionItemsReqSchema.shape,
+      annotations: { readOnlyHint: true },
+    },
+    async (args, extra) => {
+      const userId = getUserId(getActiveTransportFn, extra);
+      return getActionItems(userId, args);
+    },
+  );
+
+  server.registerTool(
+    "get_meeting_context",
+    {
+      title: "Get Meeting Context",
+      description:
+        "Find past meetings involving a specific person or topic and return their summaries. " +
+        "Useful for meeting prep. Required: query (attendee name, email, or topic). " +
+        "Optional: created_after, created_before (ISO timestamps).",
+      inputSchema: getMeetingContextReqSchema.shape,
+      annotations: { readOnlyHint: true },
+    },
+    async (args, extra) => {
+      const userId = getUserId(getActiveTransportFn, extra);
+      return getMeetingContext(userId, args);
+    },
+  );
+
+  server.registerTool(
+    "get_weekly_recap",
+    {
+      title: "Get Weekly Recap",
+      description:
+        "Get a digest of meetings and their summaries from the past N days. " +
+        "Optional: days (number of days to look back, default 7).",
+      inputSchema: getWeeklyRecapReqSchema.shape,
+      annotations: { readOnlyHint: true },
+    },
+    async (args, extra) => {
+      const userId = getUserId(getActiveTransportFn, extra);
+      return getWeeklyRecap(userId, args);
     },
   );
 

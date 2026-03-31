@@ -45,8 +45,17 @@ export class FathomAPIClient {
           { endpoint, status: response.status, errorBody },
           "Fathom API error",
         );
+
+        const errorMessages: Record<number, string> = {
+          401: "Fathom authentication failed. Please reconnect via Claude Settings > Connectors.",
+          403: "Access denied to this Fathom resource. You may not have permission.",
+          404: "Resource not found. Verify the recording_id from list_meetings.",
+          429: "Fathom API rate limit reached. Please try again in a moment.",
+        };
+
         throw AppError.fathomApi(
-          `Fathom API returned error ${response.status}`,
+          errorMessages[response.status] ??
+            `Fathom API returned an unexpected error (${response.status}).`,
           `fathom_api_${response.status}`,
         );
       }
