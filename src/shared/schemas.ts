@@ -17,11 +17,17 @@ export type ListMeetingsReqType = z.infer<typeof listMeetingsReqSchema>;
 
 export const searchMeetingsReqSchema = z.object({
   query: z.string().min(1),
+  max_pages: z.number().int().positive().optional(),
   ...listMeetingsReqSchema.shape,
 });
 
 export const recordingReqSchema = z.object({
   recording_id: z.number().int().positive(),
+});
+
+export const getTranscriptReqSchema = z.object({
+  recording_id: z.number().int().positive(),
+  speaker: z.string().optional(),
 });
 
 export const listTeamsReqSchema = z.object({
@@ -31,4 +37,23 @@ export const listTeamsReqSchema = z.object({
 export const listTeamMembersReqSchema = z.object({
   team: z.string().optional(),
   cursor: z.string().optional(),
+});
+
+const meetingDateFiltersSchema = z.object({
+  created_after: z.iso.datetime().optional(),
+  created_before: z.iso.datetime().optional(),
+});
+
+export const getActionItemsReqSchema = meetingDateFiltersSchema.extend({
+  completed: z.boolean().optional(),
+});
+
+export const getMeetingContextReqSchema = z.object({
+  query: z.string().min(1),
+  created_after: z.iso.datetime().optional(),
+  created_before: z.iso.datetime().optional(),
+});
+
+export const getWeeklyRecapReqSchema = z.object({
+  days: z.number().int().positive().optional(),
 });

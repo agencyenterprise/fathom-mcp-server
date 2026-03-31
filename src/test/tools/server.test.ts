@@ -149,10 +149,10 @@ describe("createToolServer", () => {
       const registeredPrompts = mockRegisterPrompt.mock.calls;
       const promptNames = registeredPrompts.map(([name]) => name);
 
-      expect(promptNames).toContain("latest_meeting_summary");
+      expect(promptNames).toContain("latest_meeting_short_summary");
 
       const [, config] = registeredPrompts.find(
-        ([name]) => name === "latest_meeting_summary",
+        ([name]) => name === "latest_meeting_short_summary",
       )!;
       expect(config.title).toBeDefined();
       expect(config.description).toBeDefined();

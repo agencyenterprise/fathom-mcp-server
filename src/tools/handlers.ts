@@ -5,6 +5,10 @@ import type { ListMeetingsResType } from "../modules/fathom/schema";
 import { MAX_SEARCH_PAGES } from "../shared/constants";
 import { AppError } from "../shared/errors";
 import {
+  getActionItemsReqSchema,
+  getMeetingContextReqSchema,
+  getTranscriptReqSchema,
+  getWeeklyRecapReqSchema,
   listMeetingsReqSchema,
   listTeamMembersReqSchema,
   listTeamsReqSchema,
@@ -46,11 +50,22 @@ export async function getTranscript(
   args: unknown,
 ): Promise<CallToolResult> {
   try {
-    const { recording_id } = recordingReqSchema.parse(args);
+    const { recording_id, speaker } = getTranscriptReqSchema.parse(args);
     const service = await FathomAPIClient.createAuthorizedService(userId);
     const data = await service.getTranscript(recording_id);
+
+    const transcript = speaker
+      ? data.transcript.filter((entry) =>
+          entry.speaker.display_name
+            .toLowerCase()
+            .includes(speaker.toLowerCase()),
+        )
+      : data.transcript;
+
     return {
-      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+      content: [
+        { type: "text", text: JSON.stringify({ transcript }, null, 2) },
+      ],
     };
   } catch (error) {
     return {
@@ -141,6 +156,7 @@ export async function searchMeetings(
     const input = searchMeetingsReqSchema.parse(args);
     const service = await FathomAPIClient.createAuthorizedService(userId);
     const query = input.query.toLowerCase();
+    const pageLimit = input.max_pages ?? MAX_SEARCH_PAGES;
 
     let cursor: string | undefined = input.cursor;
     let totalSearched = 0;
@@ -156,7 +172,7 @@ export async function searchMeetings(
       matchedMeetings.push(...matches);
 
       cursor = data.next_cursor ?? undefined;
-    } while (cursor && pagesSearched < MAX_SEARCH_PAGES);
+    } while (cursor && pagesSearched < pageLimit);
 
     return {
       content: [
@@ -168,6 +184,137 @@ export async function searchMeetings(
               next_cursor: cursor ?? null,
               total_searched: totalSearched,
             },
+            null,
+            2,
+          ),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [{ type: "text", text: formatToolError(error) }],
+      isError: true,
+    };
+  }
+}
+
+export async function getActionItems(
+  userId: string,
+  args: unknown,
+): Promise<CallToolResult> {
+  try {
+    const input = getActionItemsReqSchema.parse(args);
+    const service = await FathomAPIClient.createAuthorizedService(userId);
+    const data = await service.listMeetings({
+      created_after: input.created_after,
+      created_before: input.created_before,
+      include_action_items: true,
+    });
+
+    const actionItems = data.items.flatMap((meeting) =>
+      (meeting.action_items ?? [])
+        .filter(
+          (item) =>
+            input.completed === undefined || item.completed === input.completed,
+        )
+        .map((item) => ({
+          description: item.description,
+          completed: item.completed,
+          assignee: item.assignee,
+          meeting_title: meeting.title,
+          meeting_date: meeting.created_at,
+          recording_id: meeting.recording_id,
+        })),
+    );
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({ action_items: actionItems }, null, 2),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [{ type: "text", text: formatToolError(error) }],
+      isError: true,
+    };
+  }
+}
+
+export async function getMeetingContext(
+  userId: string,
+  args: unknown,
+): Promise<CallToolResult> {
+  try {
+    const input = getMeetingContextReqSchema.parse(args);
+    const service = await FathomAPIClient.createAuthorizedService(userId);
+    const query = input.query.toLowerCase();
+
+    let cursor: string | undefined = undefined;
+    let pagesSearched = 0;
+    const matched: Meeting[] = [];
+
+    do {
+      const data = await service.listMeetings({
+        created_after: input.created_after,
+        created_before: input.created_before,
+        cursor,
+      });
+      pagesSearched++;
+
+      matched.push(...data.items.filter((m) => meetingMatchesQuery(m, query)));
+      cursor = data.next_cursor ?? undefined;
+    } while (cursor && pagesSearched < MAX_SEARCH_PAGES);
+
+    const meetings = matched.map((meeting) => ({
+      title: meeting.title,
+      recording_id: meeting.recording_id,
+      date: meeting.created_at,
+      attendees: meeting.calendar_invitees.map((i) => i.name).filter(Boolean),
+      summary: meeting.default_summary?.markdown_formatted ?? null,
+    }));
+
+    return {
+      content: [{ type: "text", text: JSON.stringify({ meetings }, null, 2) }],
+    };
+  } catch (error) {
+    return {
+      content: [{ type: "text", text: formatToolError(error) }],
+      isError: true,
+    };
+  }
+}
+
+export async function getWeeklyRecap(
+  userId: string,
+  args: unknown,
+): Promise<CallToolResult> {
+  try {
+    const input = getWeeklyRecapReqSchema.parse(args);
+    const days = input.days ?? 7;
+    const created_after = new Date(
+      Date.now() - days * 24 * 60 * 60 * 1000,
+    ).toISOString();
+
+    const service = await FathomAPIClient.createAuthorizedService(userId);
+    const data = await service.listMeetings({ created_after });
+
+    const meetings = data.items.map((meeting) => ({
+      title: meeting.title,
+      recording_id: meeting.recording_id,
+      date: meeting.created_at,
+      attendees: meeting.calendar_invitees.map((i) => i.name).filter(Boolean),
+      summary: meeting.default_summary?.markdown_formatted ?? null,
+    }));
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            { meetings, total_meetings: meetings.length },
             null,
             2,
           ),
