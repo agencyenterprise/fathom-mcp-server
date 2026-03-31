@@ -52,7 +52,13 @@ export function createToolServer(
 ): McpServer {
   const server = new McpServer(
     { name: "fathom-mcp", version: config.version },
-    { capabilities: { logging: {}, tools: { listChanged: false } } },
+    {
+      capabilities: {
+        logging: {},
+        tools: { listChanged: false },
+        prompts: { listChanged: false },
+      },
+    },
   );
 
   server.registerTool(
@@ -150,6 +156,36 @@ export function createToolServer(
       const userId = getUserId(getActiveTransportFn, extra);
       return listTeamMembers(userId, args);
     },
+  );
+
+  server.registerPrompt(
+    "latest_meeting_short_summary",
+    {
+      title: "Summarize Latest Meeting",
+      description:
+        "Get a short summary of the transcript from your most recent Fathom meeting",
+    },
+    async () => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: `Call list_meetings with limit 1 to get my most recent meeting.
+
+                  Then call get_transcript using the recording_id from that result.
+
+                  Present your response in this format:
+
+                  **[meeting title] — [date]**
+                  Attendees: [names]
+
+                  **Short Summary**
+                  ...`,
+          },
+        },
+      ],
+    }),
   );
 
   return server;
