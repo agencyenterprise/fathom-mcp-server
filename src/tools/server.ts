@@ -119,7 +119,8 @@ export function createToolServer(
     "get_summary",
     {
       title: "Get Summary",
-      description: "Get the AI-generated summary for a meeting recording",
+      description:
+        "Get the Fathom AI-generated summary for a meeting recording",
       inputSchema: recordingReqSchema.shape,
       annotations: { readOnlyHint: true },
     },
