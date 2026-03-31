@@ -4,12 +4,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../../db", () => ({ db: {} }));
 
 const mockRegisterTool = vi.fn();
+const mockRegisterPrompt = vi.fn();
 const mockConnect = vi.fn();
 const mockClose = vi.fn();
 
 vi.mock("@modelcontextprotocol/sdk/server/mcp.js", () => ({
   McpServer: class MockMcpServer {
     registerTool = mockRegisterTool;
+    registerPrompt = mockRegisterPrompt;
     connect = mockConnect;
     close = mockClose;
   },
@@ -44,6 +46,7 @@ describe("createToolServer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockRegisterTool.mockClear();
+    mockRegisterPrompt.mockClear();
     mockConnect.mockClear();
     mockClose.mockClear();
     getActiveTransportFn = vi.fn<GetActiveTransportFn>();
@@ -129,6 +132,21 @@ describe("createToolServer", () => {
         expect(config.description).toBeDefined();
         expect(config.inputSchema).toBeDefined();
       }
+    });
+
+    it("registers latest_meeting_summary prompt", () => {
+      createToolServer(getActiveTransportFn);
+
+      const registeredPrompts = mockRegisterPrompt.mock.calls;
+      const promptNames = registeredPrompts.map(([name]) => name);
+
+      expect(promptNames).toContain("latest_meeting_short_summary");
+
+      const [, config] = registeredPrompts.find(
+        ([name]) => name === "latest_meeting_short_summary",
+      )!;
+      expect(config.title).toBeDefined();
+      expect(config.description).toBeDefined();
     });
   });
 
