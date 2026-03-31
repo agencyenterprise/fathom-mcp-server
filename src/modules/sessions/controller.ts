@@ -18,6 +18,12 @@ export async function routeToSessionOrInitialize(req: Request, res: Response) {
   if (sessionId) {
     const session = await sessionManager.retrieveSession(sessionId);
 
+    if (!session && isInitializeRequest(req.body)) {
+      const transport = await sessionManager.createSession(userId!);
+      await transport.handleRequest(req, res, req.body);
+      return;
+    }
+
     if (!session) {
       throw AppError.notFound("Session");
     }
