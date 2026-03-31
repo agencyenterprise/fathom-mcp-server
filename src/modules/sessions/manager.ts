@@ -122,7 +122,7 @@ export class SessionManager {
     }
 
     cached.lastAccessedAt = new Date();
-    await cached.transport.handlePostMessage(req, res);
+    await cached.transport.handlePostMessage(req, res, req.body);
   }
 
   private cacheSseTransport(
