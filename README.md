@@ -21,7 +21,9 @@
 
 This server is published to the [MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.agencyenterprise/fathom-mcp-server`.
 
-Connect in under 60 seconds:
+### Claude Desktop (Streamable HTTP)
+
+-Connect in under 60 seconds:
 
 ```
 https://www.fathom-mcp-server.com/mcp
@@ -35,6 +37,16 @@ https://www.fathom-mcp-server.com/mcp
 That's it. Ask Claude about your meetings.
 
 > **Organizations**: Admins must add the connector via organization admin settings, not personal settings.
+
+### Perplexity Desktop and other SSE clients
+
+For clients that use the legacy SSE transport (such as Perplexity Desktop for Mac), use the SSE endpoint:
+
+```
+https://www.fathom-mcp-server.com/sse
+```
+
+Refer to your client's documentation for how to add a remote SSE connector.
 
 ## Available Tools
 
@@ -150,6 +162,12 @@ Add your deployed URL as a custom connector in Claude Desktop:
 https://your-app.railway.app/mcp
 ```
 
+For SSE clients (Perplexity Desktop, etc.):
+
+```
+https://your-app.railway.app/sse
+```
+
 ## Development
 
 ```bash
@@ -171,10 +189,14 @@ npm run db:push      # Push schema directly (dev only)
 
 ## Beta Testing
 
-For pre-release features, use the staging URL:
+For pre-release features, use the staging URLs:
 
 ```
 https://fathom-mcp-staging.up.railway.app/mcp
+```
+
+```
+https://fathom-mcp-staging.up.railway.app/sse
 ```
 
 ## Fathom AI Deep dive
