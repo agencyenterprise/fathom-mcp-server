@@ -408,7 +408,7 @@ export class SessionManager {
     logger.info("Session manager shutdown complete");
   }
 
-  getActiveTransport(sessionId: string): ActiveTransport | undefined {
-    return this.activeTransports.get(sessionId);
+  getActiveTransport(sessionId: string): ActiveTransport | ActiveSseTransport | undefined {
+    return this.activeTransports.get(sessionId) ?? this.activeSseTransports.get(sessionId);
   }
 }
