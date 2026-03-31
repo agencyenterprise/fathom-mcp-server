@@ -11,6 +11,8 @@ import {
   healthRouter,
   mcpRouter,
   oauthRouter,
+  sseConnectionRouter,
+  sseMessageRouter,
   wellKnownRouter,
 } from "./routes";
 import { config } from "./shared/config";
@@ -45,6 +47,8 @@ app.use("/health", healthRouter);
 app.use("/.well-known", wellKnownRouter);
 app.use("/oauth", oauthRouter);
 app.use("/mcp", bearerAuthMiddleware, userRateLimiter, mcpRouter);
+app.use("/sse", bearerAuthMiddleware, userRateLimiter, sseConnectionRouter);
+app.use("/messages", bearerAuthMiddleware, userRateLimiter, sseMessageRouter);
 
 // Block common attack vectors and malicious bots (Express 5 syntax)
 app.use(
@@ -81,6 +85,8 @@ app.get("/api", (_req, res) => {
       wellKnown: "/.well-known/oauth-protected-resource",
       oauth: "/oauth/authorize",
       mcp: "/mcp",
+      sse: "/sse",
+      sseMessages: "/messages",
     },
   });
 });
