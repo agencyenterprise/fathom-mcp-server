@@ -95,6 +95,7 @@ export class FathomAPIClient {
       cursor: params?.cursor,
       include_action_items: params?.include_action_items,
       include_crm_matches: params?.include_crm_matches,
+      limit: params?.limit,
       recorded_by: params?.recorded_by,
       teams: params?.teams,
     });
@@ -102,12 +103,12 @@ export class FathomAPIClient {
     return listMeetingsResSchema.parse(data);
   }
 
-  async getTranscript(recordingId: string): Promise<TranscriptResType> {
+  async getTranscript(recordingId: number): Promise<TranscriptResType> {
     const data = await this.getRequest(`/recordings/${recordingId}/transcript`);
     return transcriptResSchema.parse(data);
   }
 
-  async getSummary(recordingId: string): Promise<SummaryResType> {
+  async getSummary(recordingId: number): Promise<SummaryResType> {
     const data = await this.getRequest(`/recordings/${recordingId}/summary`);
     return summaryResSchema.parse(data);
   }

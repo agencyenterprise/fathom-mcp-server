@@ -9,6 +9,7 @@ export const listMeetingsReqSchema = z.object({
   cursor: z.string().optional(),
   include_action_items: z.boolean().optional(),
   include_crm_matches: z.boolean().optional(),
+  limit: z.number().int().positive().optional(),
   recorded_by: z.array(z.email()).optional(),
   teams: z.array(z.string()).optional(),
 });
@@ -20,7 +21,7 @@ export const searchMeetingsReqSchema = z.object({
 });
 
 export const recordingReqSchema = z.object({
-  recording_id: z.string().min(1),
+  recording_id: z.number().int().positive(),
 });
 
 export const listTeamsReqSchema = z.object({

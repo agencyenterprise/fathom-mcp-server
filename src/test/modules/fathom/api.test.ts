@@ -133,10 +133,10 @@ describe("FathomAPIClient", () => {
       );
 
       const client = new FathomAPIClient("test-token");
-      const result = await client.getTranscript("recording-123");
+      const result = await client.getTranscript(123);
 
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/recordings/recording-123/transcript"),
+        expect.stringContaining("/recordings/123/transcript"),
         expect.any(Object),
       );
       expect(result.transcript).toHaveLength(1);
@@ -157,10 +157,10 @@ describe("FathomAPIClient", () => {
       );
 
       const client = new FathomAPIClient("test-token");
-      const result = await client.getSummary("recording-123");
+      const result = await client.getSummary(123);
 
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/recordings/recording-123/summary"),
+        expect.stringContaining("/recordings/123/summary"),
         expect.any(Object),
       );
       expect(result.summary.template_name).toBe("Default");
