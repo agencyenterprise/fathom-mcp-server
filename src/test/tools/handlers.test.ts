@@ -119,7 +119,7 @@ describe("tools/handlers", () => {
       });
 
       const result = await getTranscript("user-123", {
-        recording_id: "rec-456",
+        recording_id: 456,
       });
 
       expect(result.isError).toBeUndefined();
@@ -149,7 +149,7 @@ describe("tools/handlers", () => {
       });
 
       const result = await getSummary("user-123", {
-        recording_id: "rec-456",
+        recording_id: 456,
       });
 
       expect(result.isError).toBeUndefined();

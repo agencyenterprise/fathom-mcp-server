@@ -104,12 +104,12 @@ describe("schemas", () => {
     });
 
     it("accepts valid recording_id", () => {
-      const result = recordingReqSchema.parse({ recording_id: "abc-123" });
-      expect(result.recording_id).toBe("abc-123");
+      const result = recordingReqSchema.parse({ recording_id: 123 });
+      expect(result.recording_id).toBe(123);
     });
 
-    it("rejects empty recording_id", () => {
-      expect(() => recordingReqSchema.parse({ recording_id: "" })).toThrow();
+    it("rejects invalid recording_id", () => {
+      expect(() => recordingReqSchema.parse({ recording_id: 0 })).toThrow();
     });
   });
 

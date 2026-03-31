@@ -69,6 +69,7 @@ export function createToolServer(
         "List Fathom meetings with optional filters: cursor (pagination; pass the next_cursor from the previous response to get the next page), " +
         "created_after, created_before (ISO timestamps), calendar_invitees_domains (company domains), " +
         "calendar_invitees_domains_type (all/only_internal/one_or_more_external), " +
+        "limit (max number of meetings to return), " +
         "teams (team names), recorded_by (recorder emails), include_action_items (boolean), include_crm_matches (boolean). " +
         "Response includes next_cursor: when non-null, call again with cursor set to that value to fetch more meetings.",
       inputSchema: listMeetingsReqSchema.shape,
