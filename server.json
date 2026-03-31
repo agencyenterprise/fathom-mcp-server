@@ -12,6 +12,10 @@
     {
       "type": "streamable-http",
       "url": "https://fathom-mcp-server.com/mcp"
+    },
+    {
+      "type": "sse",
+      "url": "https://fathom-mcp-server.com/sse"
     }
   ]
 }

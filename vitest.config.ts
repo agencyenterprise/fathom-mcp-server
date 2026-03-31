@@ -19,6 +19,7 @@ export default defineConfig({
         "src/routes/docs.ts",
         "src/routes/mcp.ts",
         "src/routes/oauth.ts",
+        "src/routes/sse.ts",
         "src/routes/well-known.ts",
         "src/middleware/logger.ts",
         "src/middleware/rateLimit.ts",

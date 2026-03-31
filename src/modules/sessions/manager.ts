@@ -1,6 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { randomUUID } from "crypto";
+import type { Request, Response } from "express";
 import { logger } from "../../middleware/logger";
 import {
   IDLE_TRANSPORT_REAP_INTERVAL_MS,
@@ -25,13 +27,22 @@ interface ActiveTransport {
   lastAccessedAt: Date;
 }
 
+interface ActiveSseTransport {
+  transport: SSEServerTransport;
+  server: McpServer;
+  userId: string;
+  lastAccessedAt: Date;
+}
+
 export class SessionManager {
   private activeTransports: Map<string, ActiveTransport>;
+  private activeSseTransports: Map<string, ActiveSseTransport>;
   private cleanupIntervalId: NodeJS.Timeout | null = null;
   private reapIntervalId: NodeJS.Timeout | null = null;
 
   constructor() {
     this.activeTransports = new Map();
+    this.activeSseTransports = new Map();
   }
 
   async createSession(userId: string): Promise<StreamableHTTPServerTransport> {
@@ -73,6 +84,79 @@ export class SessionManager {
     await server.connect(transport);
 
     return transport;
+  }
+
+  async createSseSession(userId: string, res: Response): Promise<void> {
+    const transport = new SSEServerTransport("/messages", res);
+    const sessionId = transport.sessionId;
+
+    transport.onclose = async () => {
+      await this.handleTransportClosed(sessionId);
+    };
+
+    const server = createToolServer((id) => this.getActiveTransport(id));
+
+    try {
+      await insertSession(sessionId, userId);
+    } catch (error) {
+      logger.error(
+        { sessionId, userId, error },
+        "SSE session initialization failed",
+      );
+      throw error;
+    }
+
+    this.cacheSseTransport(sessionId, userId, transport, server);
+    await server.connect(transport);
+  }
+
+  async handleSseMessage(
+    sessionId: string,
+    req: Request,
+    res: Response,
+  ): Promise<void> {
+    const cached = this.activeSseTransports.get(sessionId);
+
+    if (!cached) {
+      throw AppError.notFound("Session");
+    }
+
+    cached.lastAccessedAt = new Date();
+    await cached.transport.handlePostMessage(req, res);
+  }
+
+  private cacheSseTransport(
+    sessionId: string,
+    userId: string,
+    transport: SSEServerTransport,
+    server: McpServer,
+  ): void {
+    this.activeSseTransports.set(sessionId, {
+      transport,
+      server,
+      userId,
+      lastAccessedAt: new Date(),
+    });
+
+    const activeCount =
+      this.activeTransports.size + this.activeSseTransports.size;
+
+    if (activeCount > MAX_ACTIVE_TRANSPORTS_WARN) {
+      logger.warn(
+        {
+          sessionId,
+          userId,
+          activeCount,
+          threshold: MAX_ACTIVE_TRANSPORTS_WARN,
+        },
+        "Active transport count exceeds warning threshold",
+      );
+    }
+
+    logger.info(
+      { sessionId, userId, activeCount },
+      "SSE transport stored in memory",
+    );
   }
 
   private cacheTransport(
@@ -121,10 +205,13 @@ export class SessionManager {
 
   async terminateSession(sessionId: string): Promise<void> {
     const cachedTransport = this.activeTransports.get(sessionId);
+    const cachedSseTransport = this.activeSseTransports.get(sessionId);
 
-    if (cachedTransport) {
+    const entry = cachedTransport ?? cachedSseTransport;
+
+    if (entry) {
       try {
-        await cachedTransport.server.close();
+        await entry.server.close();
       } catch (error) {
         logger.error({ sessionId, error }, "Error closing server");
       }
@@ -132,6 +219,7 @@ export class SessionManager {
 
     await this.persistTermination(sessionId);
     this.activeTransports.delete(sessionId);
+    this.activeSseTransports.delete(sessionId);
 
     logger.info({ sessionId }, "Session terminated");
   }
@@ -153,6 +241,7 @@ export class SessionManager {
       // Error already thrown as AppError.server, can't propagate from SDK callback
     }
     this.activeTransports.delete(sessionId);
+    this.activeSseTransports.delete(sessionId);
   }
 
   async reapIdleTransports(): Promise<void> {
@@ -166,10 +255,19 @@ export class SessionManager {
       }
     }
 
+    for (const [sessionId, entry] of this.activeSseTransports) {
+      const idleMs = now - entry.lastAccessedAt.getTime();
+      if (idleMs > IDLE_TRANSPORT_TTL_MS) {
+        idleSessions.push(sessionId);
+      }
+    }
+
     if (idleSessions.length === 0) return;
 
     const closePromises = idleSessions.map(async (sessionId) => {
-      const entry = this.activeTransports.get(sessionId);
+      const entry =
+        this.activeTransports.get(sessionId) ??
+        this.activeSseTransports.get(sessionId);
       if (entry) {
         try {
           await entry.server.close();
@@ -177,6 +275,7 @@ export class SessionManager {
           logger.error({ sessionId, error }, "Error closing idle server");
         }
         this.activeTransports.delete(sessionId);
+        this.activeSseTransports.delete(sessionId);
       }
       try {
         await markSessionTerminated(sessionId);
@@ -188,7 +287,10 @@ export class SessionManager {
     await Promise.all(closePromises);
 
     logger.info(
-      { reaped: idleSessions.length, remaining: this.activeTransports.size },
+      {
+        reaped: idleSessions.length,
+        remaining: this.activeTransports.size + this.activeSseTransports.size,
+      },
       "Reaped idle transports",
     );
   }
@@ -199,7 +301,9 @@ export class SessionManager {
 
       if (expiredSessionIds.length > 0) {
         const closePromises = expiredSessionIds.map(async (sessionId) => {
-          const cachedTransport = this.activeTransports.get(sessionId);
+          const cachedTransport =
+            this.activeTransports.get(sessionId) ??
+            this.activeSseTransports.get(sessionId);
           if (cachedTransport) {
             try {
               await cachedTransport.server.close();
@@ -210,6 +314,7 @@ export class SessionManager {
               );
             }
             this.activeTransports.delete(sessionId);
+            this.activeSseTransports.delete(sessionId);
           }
         });
 
@@ -279,22 +384,26 @@ export class SessionManager {
 
     this.stopCleanupScheduler();
 
-    const closePromises = Array.from(this.activeTransports.entries()).map(
-      async ([sessionId, { server }]) => {
-        try {
-          await server.close();
-          await this.persistTermination(sessionId);
-        } catch (error) {
-          logger.error(
-            { sessionId, error },
-            "Error closing server during shutdown",
-          );
-        }
-      },
-    );
+    const allEntries = [
+      ...Array.from(this.activeTransports.entries()),
+      ...Array.from(this.activeSseTransports.entries()),
+    ];
+
+    const closePromises = allEntries.map(async ([sessionId, { server }]) => {
+      try {
+        await server.close();
+        await this.persistTermination(sessionId);
+      } catch (error) {
+        logger.error(
+          { sessionId, error },
+          "Error closing server during shutdown",
+        );
+      }
+    });
 
     await Promise.all(closePromises);
     this.activeTransports.clear();
+    this.activeSseTransports.clear();
 
     logger.info("Session manager shutdown complete");
   }
