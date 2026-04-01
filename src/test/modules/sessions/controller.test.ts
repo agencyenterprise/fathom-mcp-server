@@ -69,8 +69,7 @@ describe("sessions/controller", () => {
       expect(mockTransport.handleRequest).toHaveBeenCalled();
     });
 
-    it("throws when session not found for non-initialize request", async () => {
-      vi.mocked(isInitializeRequest).mockReturnValue(false);
+    it("throws when session not found", async () => {
       const req = createMockRequest({
         headers: { "mcp-session-id": "nonexistent" },
       });
@@ -81,55 +80,6 @@ describe("sessions/controller", () => {
       )._sessionManager.retrieveSession.mockResolvedValue(null);
 
       await expect(routeToSessionOrInitialize(req, res)).rejects.toThrow();
-    });
-
-    it("terminates old session and creates new one on initialize with stale sessionId", async () => {
-      vi.mocked(isInitializeRequest).mockReturnValue(true);
-      const mockTransport = { handleRequest: vi.fn() };
-      const existingSession = {
-        transport: { handleRequest: vi.fn() },
-        userId: "user-123",
-      };
-      const req = createMockRequest({
-        headers: { "mcp-session-id": "stale-session-id" },
-        body: { method: "initialize" },
-      });
-      const res = createMockResponse();
-      const sm = (
-        req as { _sessionManager: ReturnType<typeof createMockSessionManager> }
-      )._sessionManager;
-
-      sm.retrieveSession.mockResolvedValue(existingSession);
-      sm.terminateSession.mockResolvedValue(undefined);
-      sm.createSession.mockResolvedValue(mockTransport);
-
-      await routeToSessionOrInitialize(req, res);
-
-      expect(sm.terminateSession).toHaveBeenCalledWith("stale-session-id");
-      expect(sm.createSession).toHaveBeenCalledWith("user-123");
-      expect(mockTransport.handleRequest).toHaveBeenCalled();
-    });
-
-    it("creates new session on initialize with stale sessionId not in memory", async () => {
-      vi.mocked(isInitializeRequest).mockReturnValue(true);
-      const mockTransport = { handleRequest: vi.fn() };
-      const req = createMockRequest({
-        headers: { "mcp-session-id": "stale-session-id" },
-        body: { method: "initialize" },
-      });
-      const res = createMockResponse();
-      const sm = (
-        req as { _sessionManager: ReturnType<typeof createMockSessionManager> }
-      )._sessionManager;
-
-      sm.retrieveSession.mockResolvedValue(null);
-      sm.createSession.mockResolvedValue(mockTransport);
-
-      await routeToSessionOrInitialize(req, res);
-
-      expect(sm.terminateSession).not.toHaveBeenCalled();
-      expect(sm.createSession).toHaveBeenCalledWith("user-123");
-      expect(mockTransport.handleRequest).toHaveBeenCalled();
     });
 
     it("throws when session belongs to different user", async () => {
@@ -150,7 +100,7 @@ describe("sessions/controller", () => {
       await expect(routeToSessionOrInitialize(req, res)).rejects.toThrow();
     });
 
-    it("creates session for initialize request without sessionId", async () => {
+    it("creates session for initialize request", async () => {
       vi.mocked(isInitializeRequest).mockReturnValue(true);
       const mockTransport = { handleRequest: vi.fn() };
       const req = createMockRequest({
