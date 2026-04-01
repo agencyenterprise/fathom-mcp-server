@@ -5,6 +5,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -75,6 +76,26 @@ export const mcpServerAuthorizationCodes = pgTable(
   ],
 );
 
+export const mcpServerRefreshTokens = pgTable(
+  "mcp_server_refresh_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    token: text("token").notNull().unique(),
+    userId: text("user_id").notNull(),
+    clientId: text("client_id").notNull(),
+    scope: text("scope").notNull().default("fathom:read"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+  },
+  (table) => [
+    unique("mcp_server_refresh_tokens_user_client_uniq").on(
+      table.userId,
+      table.clientId,
+    ),
+    index("mcp_server_refresh_tokens_expires_at_idx").on(table.expiresAt),
+  ],
+);
+
 export const mcpServerOAuthClients = pgTable("mcp_server_oauth_clients", {
   id: uuid("id").primaryKey().defaultRandom(),
   clientId: text("client_id").notNull().unique(),
@@ -109,5 +130,8 @@ export type McpServerAuthorizationCode = InferSelectModel<
 >;
 export type McpServerOAuthClient = InferSelectModel<
   typeof mcpServerOAuthClients
+>;
+export type McpServerRefreshToken = InferSelectModel<
+  typeof mcpServerRefreshTokens
 >;
 export type McpSession = InferSelectModel<typeof mcpSessions>;

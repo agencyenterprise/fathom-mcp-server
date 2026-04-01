@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import { config } from "../../shared/config";
 import {
   FATHOM_API_SCOPE,
+  MCP_SERVER_ACCESS_TOKEN_TTL_MS,
   OAUTH_GRANT_TYPE_AUTH_CODE,
   OAUTH_GRANT_TYPE_REFRESH,
   OAUTH_RESPONSE_TYPE_CODE,
@@ -19,9 +20,11 @@ import {
 } from "./schema";
 import {
   consumeMcpServerAuthorizationCode,
+  consumeMcpServerRefreshToken,
   createMcpServerAccessToken,
   createMcpServerAuthorizationCode,
   createMcpServerOAuthState,
+  createMcpServerRefreshToken,
   deleteMcpServerOAuthState,
   findMcpServerOAuthClient,
   getFathomOAuthToken,
@@ -49,7 +52,7 @@ export async function registerMcpServerOAuthClient(
     redirect_uris,
     client_name,
     token_endpoint_auth_method: "none",
-    grant_types: ["authorization_code"],
+    grant_types: ["authorization_code", "refresh_token"],
     response_types: ["code"],
   });
 }
@@ -141,27 +144,45 @@ export async function exchangeCodeForMcpAccessToken(
   req: Request,
   res: Response,
 ) {
-  const { code, code_verifier } = exchangeCodeForMcpAccessTokenReqSchema.parse(
-    req.body,
-  );
+  const body = exchangeCodeForMcpAccessTokenReqSchema.parse(req.body);
 
-  const authorizationCodeRecord = await consumeMcpServerAuthorizationCode(code);
+  if (body.grant_type === "refresh_token") {
+    return await refreshMcpAccessToken(body.refresh_token, body.client_id, res);
+  }
+
+  return await issueAccessTokenFromAuthCode(body, res);
+}
+
+async function issueAccessTokenFromAuthCode(
+  body: {
+    grant_type: "authorization_code";
+    code: string;
+    client_id?: string;
+    redirect_uri?: string;
+    code_verifier?: string;
+  },
+  res: Response,
+) {
+  const authorizationCodeRecord = await consumeMcpServerAuthorizationCode(
+    body.code,
+  );
   if (!authorizationCodeRecord) {
     throw AppError.oauth(
       "invalid_grant",
       "Invalid, expired, or already used authorization code",
     );
   }
-  const { clientCodeChallenge, clientCodeChallengeMethod, userId, scope } =
+
+  const { clientCodeChallenge, clientCodeChallengeMethod, clientId, userId, scope } =
     authorizationCodeRecord;
 
   if (clientCodeChallenge && clientCodeChallengeMethod) {
-    if (!code_verifier) {
+    if (!body.code_verifier) {
       throw AppError.validation("Missing code_verifier for MCP Server PKCE");
     }
 
     const isValid = verifyMcpServerPKCE(
-      code_verifier,
+      body.code_verifier,
       clientCodeChallenge,
       clientCodeChallengeMethod,
     );
@@ -174,11 +195,52 @@ export async function exchangeCodeForMcpAccessToken(
     }
   }
 
-  const mcpServerAccessToken = await createMcpServerAccessToken(userId, scope);
+  const [accessToken, refreshToken] = await Promise.all([
+    createMcpServerAccessToken(userId, scope),
+    createMcpServerRefreshToken(userId, clientId, scope),
+  ]);
 
   res.json({
-    access_token: mcpServerAccessToken,
+    access_token: accessToken,
     token_type: "Bearer",
+    expires_in: Math.floor(MCP_SERVER_ACCESS_TOKEN_TTL_MS / 1000),
+    refresh_token: refreshToken,
+    scope,
+  });
+}
+
+async function refreshMcpAccessToken(
+  token: string,
+  clientId: string,
+  res: Response,
+) {
+  const refreshTokenRecord = await consumeMcpServerRefreshToken(token);
+  if (!refreshTokenRecord) {
+    throw AppError.oauth(
+      "invalid_grant",
+      "Invalid or expired refresh token",
+    );
+  }
+
+  if (refreshTokenRecord.clientId !== clientId) {
+    throw AppError.oauth(
+      "invalid_grant",
+      "Refresh token was not issued to this client",
+    );
+  }
+
+  const { userId, scope } = refreshTokenRecord;
+
+  const [newAccessToken, newRefreshToken] = await Promise.all([
+    createMcpServerAccessToken(userId, scope),
+    createMcpServerRefreshToken(userId, clientId, scope),
+  ]);
+
+  res.json({
+    access_token: newAccessToken,
+    token_type: "Bearer",
+    expires_in: Math.floor(MCP_SERVER_ACCESS_TOKEN_TTL_MS / 1000),
+    refresh_token: newRefreshToken,
     scope,
   });
 }
