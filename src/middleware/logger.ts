@@ -45,7 +45,8 @@ export const requestLogger = pinoHttp({
     res: ServerResponse,
     err: Error | undefined,
   ) => {
-    if (res.statusCode >= 400 || err) return "error";
+    if (err || res.statusCode >= 500) return "error";
+    if (res.statusCode >= 400) return "warn";
     return "info";
   },
 });
