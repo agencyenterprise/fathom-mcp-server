@@ -50,14 +50,17 @@ Refer to your client's documentation for how to add a remote SSE connector.
 
 ## Available Tools
 
-| Tool                | Description                                             | Docs                                                                                    |
-| ------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `list_meetings`     | List meetings with filters (date, team, recorder, etc.) | [Fathom API](https://developers.fathom.ai/api-reference/meetings/list-meetings)         |
-| `search_meetings`   | Search meetings by title, host, or attendee information | [MCP Custom](#custom-mcp-tools)                                                         |
-| `get_transcript`    | Get full transcript for a recording                     | [Fathom API](https://developers.fathom.ai/api-reference/recordings/get-transcript)      |
-| `get_summary`       | Get AI-generated summary for a recording                | [Fathom API](https://developers.fathom.ai/api-reference/recordings/get-summary)         |
-| `list_teams`        | List all accessible teams                               | [Fathom API](https://developers.fathom.ai/api-reference/teams/list-teams)               |
-| `list_team_members` | List members of a team                                  | [Fathom API](https://developers.fathom.ai/api-reference/team-members/list-team-members) |
+| Tool                   | Description                                             | Docs                                                                                    |
+| ---------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `list_meetings`        | List meetings with filters (date, team, recorder, etc.) | [Fathom API](https://developers.fathom.ai/api-reference/meetings/list-meetings)         |
+| `search_meetings`      | Search meetings by title, host, or attendee information | [MCP Custom](#custom-mcp-tools)                                                         |
+| `get_transcript`       | Get full transcript for a recording                     | [Fathom API](https://developers.fathom.ai/api-reference/recordings/get-transcript)      |
+| `get_summary`          | Get AI-generated summary for a recording                | [Fathom API](https://developers.fathom.ai/api-reference/recordings/get-summary)         |
+| `list_teams`           | List all accessible teams                               | [Fathom API](https://developers.fathom.ai/api-reference/teams/list-teams)               |
+| `list_team_members`    | List members of a team                                  | [Fathom API](https://developers.fathom.ai/api-reference/team-members/list-team-members) |
+| `get_action_items`     | Aggregate action items across meetings with filters     | [MCP Custom](#custom-mcp-tools)                                                         |
+| `get_meeting_context`  | Find past meetings by person or topic for meeting prep  | [MCP Custom](#custom-mcp-tools)                                                         |
+| `get_weekly_recap`     | Get a digest of meetings and summaries from the past N days | [MCP Custom](#custom-mcp-tools)                                                     |
 
 ### Custom MCP Tools
 
@@ -67,6 +70,18 @@ Search Fathom meetings by title, meeting title, host name, host email, or attend
 
 See the [Fathom MCP Server documentation](https://www.fathom-mcp-server.com/docs) for full request and response parameters.
 
+#### `get_action_items`
+
+Aggregate action items across meetings. Accepts optional `created_after` / `created_before` (ISO timestamps) and `completed` (boolean) filters. Returns a flat list of action items with assignee, meeting title, date, and `recording_id`.
+
+#### `get_meeting_context`
+
+Find past meetings involving a specific person or topic and return their summaries. Useful for meeting prep. Requires a `query` (attendee name, email, or topic). Accepts optional `created_after` / `created_before` filters. Scans up to 5 pages of meetings using client-side matching.
+
+#### `get_weekly_recap`
+
+Get a digest of meetings and their summaries from the past N days. Accepts an optional `days` parameter (defaults to 7). Returns meeting titles, dates, attendees, summaries, and a `total_meetings` count.
+
 ### Example Usage in Claude
 
 > "Show me my meetings from last week"
@@ -74,6 +89,12 @@ See the [Fathom MCP Server documentation](https://www.fathom-mcp-server.com/docs
 > "Get the transcript from my standup yesterday"
 
 > "Summarize my meeting with the design team"
+
+> "What are all my incomplete action items from this week?"
+
+> "I have a call with Sarah tomorrow — what have we talked about before?"
+
+> "Give me a recap of everything I discussed this week"
 
 ## Security
 
@@ -100,7 +121,9 @@ The Fathom API itself only provides read access via its `public_api` scope. Writ
 ## Limitations
 
 - `search_meetings` performs client-side filtering since Fathom's API doesn't provide a search endpoint. For users with many meetings, use `list_meetings` with date filters instead.
-- You can always ask the LLM what query params are avaialable.
+- `get_meeting_context` performs client-side matching across up to 5 pages of results. For users with many meetings, narrow the search with `created_after` / `created_before` filters.
+- `get_weekly_recap` only fetches the first page of results for the given time window. For high-volume weeks, use `list_meetings` with date filters and paginate manually.
+- You can always ask the LLM what query params are available.
 
 ## Self-Hosting
 
@@ -177,7 +200,7 @@ npm run start        # Run production build
 npm run lint         # Check for linting errors
 npm run lint:fix     # Fix linting errors
 npm run typecheck    # Run TypeScript type checking
-npm run ci           # Run all CI checks (lint, typecheck, build)
+npm run ci           # Run all CI checks (lint, typecheck, tests, build)
 npm run format       # Format code with Prettier
 npm run db:studio    # Open Drizzle Studio for database inspection
 npm run db:generate  # Generate migrations from schema changes
@@ -214,7 +237,6 @@ See [RELEASING.md](RELEASING.md) for version and release instructions.
 ## Future Development Plans
 
 - **Transcript vectorization** — Enable vectorization of large transcripts so LLMs can parse and understand them more efficiently. Would be implemented as a stateless worker to ensure no user data is persisted.
-- **Action item aggregation** — Aggregate action items across meetings with filters. "Show all my incomplete action items from this week."
 - **Meeting analytics** — Calculate stats like total meeting time, meeting frequency, and top attendees.
 - **Speaker time analysis** — Analyze transcripts to show who spoke most in a meeting.
 - **Meeting comparison** — Compare two meeting summaries to highlight what changed over time.

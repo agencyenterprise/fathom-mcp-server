@@ -48,7 +48,7 @@ If your PR modifies `src/db/schema.ts`:
 
 ## Code Style
 
-- Run `npm run ci` before committing (runs lint, typecheck, and build)
+- Run `npm run ci` before committing (runs lint, typecheck, tests, and build)
 - Run `npm run format` to auto-format with Prettier
 - Follow existing patterns in the codebase
 
