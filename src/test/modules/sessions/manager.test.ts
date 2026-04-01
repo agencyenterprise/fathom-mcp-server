@@ -58,6 +58,10 @@ import {
   insertSession,
   markSessionTerminated,
 } from "../../../modules/sessions/service";
+import {
+  IDLE_TRANSPORT_TTL_MS,
+  SESSION_CLEANUP_INTERVAL_MS,
+} from "../../../shared/constants";
 
 describe("SessionManager", () => {
   let sessionManager: SessionManager;
@@ -90,6 +94,25 @@ describe("SessionManager", () => {
 
       expect(transport).toBeDefined();
     });
+
+    it("removes transport and persists termination when transport closes", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+      vi.mocked(markSessionTerminated).mockResolvedValue(undefined);
+
+      const transport = await sessionManager.createSession("user-123");
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(
+        sessionManager.getActiveTransport("mock-session-id"),
+      ).toBeDefined();
+
+      await transport.onclose?.();
+
+      expect(markSessionTerminated).toHaveBeenCalledWith("mock-session-id");
+      expect(
+        sessionManager.getActiveTransport("mock-session-id"),
+      ).toBeUndefined();
+    });
   });
 
   describe("retrieveSession", () => {
@@ -97,6 +120,18 @@ describe("SessionManager", () => {
       const result = await sessionManager.retrieveSession("nonexistent");
 
       expect(result).toBeNull();
+    });
+
+    it("returns the cached transport for an active session", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+
+      await sessionManager.createSession("user-123");
+      await vi.advanceTimersByTimeAsync(0);
+
+      const result = await sessionManager.retrieveSession("mock-session-id");
+
+      expect(result).toBeDefined();
+      expect(result?.userId).toBe("user-123");
     });
   });
 
@@ -115,6 +150,43 @@ describe("SessionManager", () => {
       await expect(
         sessionManager.terminateSession("session-123"),
       ).rejects.toThrow("Failed to terminate session");
+    });
+
+    it("closes the active server when terminating a session that is in memory", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+      vi.mocked(markSessionTerminated).mockResolvedValue(undefined);
+
+      await sessionManager.createSession("user-123");
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(
+        sessionManager.getActiveTransport("mock-session-id"),
+      ).toBeDefined();
+
+      await sessionManager.terminateSession("mock-session-id");
+
+      expect(mockServerClose).toHaveBeenCalled();
+      expect(
+        sessionManager.getActiveTransport("mock-session-id"),
+      ).toBeUndefined();
+    });
+
+    it("logs error and continues when server close throws during termination", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+      vi.mocked(markSessionTerminated).mockResolvedValue(undefined);
+
+      await sessionManager.createSession("user-123");
+      await vi.advanceTimersByTimeAsync(0);
+
+      mockServerClose.mockRejectedValueOnce(new Error("close failed"));
+
+      await expect(
+        sessionManager.terminateSession("mock-session-id"),
+      ).resolves.not.toThrow();
+
+      expect(
+        sessionManager.getActiveTransport("mock-session-id"),
+      ).toBeUndefined();
     });
   });
 
@@ -169,6 +241,55 @@ describe("SessionManager", () => {
 
       await expect(sessionManager.cleanupExpiredData()).resolves.not.toThrow();
     });
+
+    it("closes and removes an in-memory transport whose session has expired", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+      vi.mocked(markSessionTerminated).mockResolvedValue(undefined);
+
+      await sessionManager.createSession("user-123");
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(
+        sessionManager.getActiveTransport("mock-session-id"),
+      ).toBeDefined();
+
+      vi.mocked(findExpiredSessionIds).mockResolvedValue(["mock-session-id"]);
+      vi.mocked(deleteSessionsByIds).mockResolvedValue(undefined);
+      vi.mocked(cleanupExpiredMcpServerOAuthData).mockResolvedValue({
+        oauthStates: 0,
+        authorizationCodes: 0,
+        accessTokens: 0,
+        refreshTokens: 0,
+      });
+
+      await sessionManager.cleanupExpiredData();
+
+      expect(deleteSessionsByIds).toHaveBeenCalledWith(["mock-session-id"]);
+      expect(
+        sessionManager.getActiveTransport("mock-session-id"),
+      ).toBeUndefined();
+    });
+
+    it("logs error and continues when server close throws during expired session cleanup", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+
+      await sessionManager.createSession("user-123");
+      await vi.advanceTimersByTimeAsync(0);
+
+      mockServerClose.mockRejectedValueOnce(new Error("server close failed"));
+
+      vi.mocked(findExpiredSessionIds).mockResolvedValue(["mock-session-id"]);
+      vi.mocked(deleteSessionsByIds).mockResolvedValue(undefined);
+      vi.mocked(cleanupExpiredMcpServerOAuthData).mockResolvedValue({
+        oauthStates: 0,
+        authorizationCodes: 0,
+        accessTokens: 0,
+        refreshTokens: 0,
+      });
+
+      await expect(sessionManager.cleanupExpiredData()).resolves.not.toThrow();
+      expect(deleteSessionsByIds).toHaveBeenCalledWith(["mock-session-id"]);
+    });
   });
 
   describe("reapIdleTransports", () => {
@@ -183,7 +304,6 @@ describe("SessionManager", () => {
         sessionManager.getActiveTransport("mock-session-id"),
       ).toBeDefined();
 
-      // Advance past idle TTL (5 minutes)
       vi.advanceTimersByTime(6 * 60 * 1000);
 
       await sessionManager.reapIdleTransports();
@@ -200,7 +320,6 @@ describe("SessionManager", () => {
       await sessionManager.createSession("user-123");
       await vi.advanceTimersByTimeAsync(0);
 
-      // Advance only 2 minutes (under 5 min TTL)
       vi.advanceTimersByTime(2 * 60 * 1000);
 
       await sessionManager.reapIdleTransports();
@@ -210,10 +329,21 @@ describe("SessionManager", () => {
       ).toBeDefined();
     });
 
-    it("does nothing when no transports are idle", async () => {
+    it("reaps idle SSE transports beyond IDLE_TRANSPORT_TTL_MS", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+      vi.mocked(markSessionTerminated).mockResolvedValue(undefined);
+      const mockRes = {} as unknown;
+
+      await sessionManager.createSseSession("user-sse", mockRes as never);
+
+      vi.advanceTimersByTime(6 * 60 * 1000);
+
       await sessionManager.reapIdleTransports();
 
-      expect(markSessionTerminated).not.toHaveBeenCalled();
+      expect(
+        sessionManager.getActiveTransport("mock-sse-session-id"),
+      ).toBeUndefined();
+      expect(markSessionTerminated).toHaveBeenCalledWith("mock-sse-session-id");
     });
 
     it("handles transport close errors gracefully", async () => {
@@ -235,13 +365,30 @@ describe("SessionManager", () => {
         sessionManager.getActiveTransport("mock-session-id"),
       ).toBeUndefined();
     });
+
+    it("logs error and continues when server close throws while reaping", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+      vi.mocked(markSessionTerminated).mockResolvedValue(undefined);
+
+      await sessionManager.createSession("user-123");
+      await vi.advanceTimersByTimeAsync(0);
+
+      mockServerClose.mockRejectedValueOnce(new Error("server close failed"));
+
+      vi.advanceTimersByTime(6 * 60 * 1000);
+
+      await expect(sessionManager.reapIdleTransports()).resolves.not.toThrow();
+
+      expect(
+        sessionManager.getActiveTransport("mock-session-id"),
+      ).toBeUndefined();
+    });
   });
 
   describe("startCleanupScheduler", () => {
     it("starts cleanup and reaper intervals", () => {
       sessionManager.startCleanupScheduler();
 
-      // 2 intervals: hourly cleanup + 60s reaper
       expect(vi.getTimerCount()).toBe(2);
     });
 
@@ -250,6 +397,36 @@ describe("SessionManager", () => {
       sessionManager.startCleanupScheduler();
 
       expect(vi.getTimerCount()).toBe(2);
+    });
+
+    it("fires cleanupExpiredData when the cleanup interval elapses", async () => {
+      vi.mocked(findExpiredSessionIds).mockResolvedValue([]);
+      vi.mocked(cleanupExpiredMcpServerOAuthData).mockResolvedValue({
+        oauthStates: 0,
+        authorizationCodes: 0,
+        accessTokens: 0,
+        refreshTokens: 0,
+      });
+
+      sessionManager.startCleanupScheduler();
+      await vi.advanceTimersByTimeAsync(SESSION_CLEANUP_INTERVAL_MS);
+
+      expect(findExpiredSessionIds).toHaveBeenCalled();
+    });
+
+    it("fires reapIdleTransports when the reaper interval elapses", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+      vi.mocked(markSessionTerminated).mockResolvedValue(undefined);
+
+      await sessionManager.createSession("user-123");
+      await vi.advanceTimersByTimeAsync(0);
+
+      sessionManager.startCleanupScheduler();
+      await vi.advanceTimersByTimeAsync(
+        SESSION_CLEANUP_INTERVAL_MS + IDLE_TRANSPORT_TTL_MS,
+      );
+
+      expect(markSessionTerminated).toHaveBeenCalledWith("mock-session-id");
     });
   });
 
@@ -275,6 +452,20 @@ describe("SessionManager", () => {
 
       expect(vi.getTimerCount()).toBe(0);
     });
+
+    it("logs error and completes shutdown when persistTermination throws", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+      vi.mocked(markSessionTerminated).mockRejectedValue(new Error("DB error"));
+
+      await sessionManager.createSession("user-123");
+      await vi.advanceTimersByTimeAsync(0);
+
+      await expect(sessionManager.shutdown()).resolves.not.toThrow();
+
+      expect(
+        sessionManager.getActiveTransport("mock-session-id"),
+      ).toBeUndefined();
+    });
   });
 
   describe("createSseSession", () => {
@@ -298,6 +489,30 @@ describe("SessionManager", () => {
       await expect(
         sessionManager.createSseSession("user-123", mockRes as never),
       ).rejects.toThrow("DB error");
+    });
+
+    it("removes SSE transport and persists termination when transport closes", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+      vi.mocked(markSessionTerminated).mockResolvedValue(undefined);
+      const mockRes = {} as unknown;
+
+      await sessionManager.createSseSession("user-123", mockRes as never);
+
+      expect(
+        sessionManager.getActiveTransport("mock-sse-session-id"),
+      ).toBeDefined();
+
+      const entry = sessionManager.getActiveTransport(
+        "mock-sse-session-id",
+      ) as {
+        transport: { onclose?: () => Promise<void> };
+      };
+      await entry.transport.onclose?.();
+
+      expect(markSessionTerminated).toHaveBeenCalledWith("mock-sse-session-id");
+      expect(
+        sessionManager.getActiveTransport("mock-sse-session-id"),
+      ).toBeUndefined();
     });
   });
 
@@ -346,6 +561,48 @@ describe("SessionManager", () => {
       );
 
       expect(mockServerConnect).toHaveBeenCalled();
+    });
+  });
+
+  describe("active transport count", () => {
+    it("counts both HTTP and SSE transports together when logging", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+      const mockRes = {} as unknown;
+
+      await sessionManager.createSseSession("user-sse", mockRes as never);
+
+      const loggerInfoSpy = vi.spyOn(
+        (await import("../../../middleware/logger")).logger,
+        "info",
+      );
+
+      await sessionManager.createSession("user-http");
+      await vi.advanceTimersByTimeAsync(0);
+
+      const transportLogCall = loggerInfoSpy.mock.calls.find(
+        (call) => call[1] === "Transport stored in memory",
+      );
+
+      expect(transportLogCall).toBeDefined();
+      expect(
+        (transportLogCall![0] as { activeCount: number }).activeCount,
+      ).toBe(2);
+    });
+
+    it("getActiveTransport resolves sessions from both transport maps", async () => {
+      vi.mocked(insertSession).mockResolvedValue(undefined);
+      const mockRes = {} as unknown;
+
+      await sessionManager.createSseSession("user-sse", mockRes as never);
+      await sessionManager.createSession("user-http");
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(
+        sessionManager.getActiveTransport("mock-sse-session-id"),
+      ).toBeDefined();
+      expect(
+        sessionManager.getActiveTransport("mock-session-id"),
+      ).toBeDefined();
     });
   });
 });

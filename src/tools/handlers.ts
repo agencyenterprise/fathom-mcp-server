@@ -1,5 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { ZodError } from "zod";
+import { logger } from "../middleware/logger";
 import { FathomAPIClient } from "../modules/fathom/api";
 import type { ListMeetingsResType } from "../modules/fathom/schema";
 import { MAX_SEARCH_PAGES } from "../shared/constants";
@@ -14,11 +15,20 @@ import {
 
 function formatToolError(error: unknown): string {
   if (error instanceof AppError) {
+    logger.warn(
+      { errorType: error.errorType, code: error.code },
+      error.message,
+    );
     return error.message;
   }
   if (error instanceof ZodError) {
+    logger.warn(
+      { errorType: "validation", errors: error.issues },
+      "Tool validation error",
+    );
     return error.issues[0]?.message || "Invalid parameters";
   }
+  logger.error({ error }, "Unexpected tool error");
   return "An unexpected error occurred";
 }
 
