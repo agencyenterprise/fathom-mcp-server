@@ -7,17 +7,20 @@ import {
   mcpServerAuthorizationCodes,
   mcpServerOAuthClients,
   mcpServerOAuthStates,
+  mcpServerRefreshTokens,
   type FathomOAuthToken,
   type McpServerAccessToken,
   type McpServerAuthorizationCode,
   type McpServerOAuthClient,
   type McpServerOAuthState,
+  type McpServerRefreshToken,
 } from "../../db";
 import {
   MCP_SERVER_ACCESS_TOKEN_TTL_MS,
   MCP_SERVER_AUTH_CODE_TTL_MS,
   MCP_SERVER_DEFAULT_SCOPE,
   MCP_SERVER_OAUTH_STATE_TTL_MS,
+  MCP_SERVER_REFRESH_TOKEN_TTL_MS,
   STALE_SESSION_CUTOFF_MS,
 } from "../../shared/constants";
 import { encrypt } from "../../utils/crypto";
@@ -164,6 +167,51 @@ export async function createMcpServerAccessToken(
   return token;
 }
 
+export async function createMcpServerRefreshToken(
+  userId: string,
+  clientId: string,
+  scope: string,
+): Promise<string> {
+  const token = randomUUID();
+  const expiresAt = new Date(Date.now() + MCP_SERVER_REFRESH_TOKEN_TTL_MS);
+
+  await db
+    .insert(mcpServerRefreshTokens)
+    .values({ token, userId, clientId, scope, expiresAt })
+    .onConflictDoUpdate({
+      target: [mcpServerRefreshTokens.userId, mcpServerRefreshTokens.clientId],
+      set: { token, scope, expiresAt },
+    });
+
+  return token;
+}
+
+export async function consumeMcpServerRefreshToken(
+  token: string,
+): Promise<McpServerRefreshToken | null> {
+  return await db.transaction(async (tx) => {
+    const records = await tx
+      .select()
+      .from(mcpServerRefreshTokens)
+      .where(
+        and(
+          eq(mcpServerRefreshTokens.token, token),
+          gt(mcpServerRefreshTokens.expiresAt, new Date()),
+        ),
+      )
+      .limit(1);
+
+    const record = records[0];
+    if (!record) return null;
+
+    await tx
+      .delete(mcpServerRefreshTokens)
+      .where(eq(mcpServerRefreshTokens.token, token));
+
+    return record;
+  });
+}
+
 export async function getMcpServerAccessToken(
   token: string,
 ): Promise<McpServerAccessToken | null> {
@@ -238,37 +286,44 @@ export async function cleanupExpiredMcpServerOAuthData(): Promise<{
   oauthStates: number;
   authorizationCodes: number;
   accessTokens: number;
+  refreshTokens: number;
 }> {
   const now = new Date();
   const staleUsedCodesCutoff = new Date(
     now.getTime() - STALE_SESSION_CUTOFF_MS,
   );
 
-  const [statesResult, codesResult, tokensResult] = await Promise.all([
-    db
-      .delete(mcpServerOAuthStates)
-      .where(lt(mcpServerOAuthStates.expiresAt, now)),
+  const [statesResult, codesResult, tokensResult, refreshTokensResult] =
+    await Promise.all([
+      db
+        .delete(mcpServerOAuthStates)
+        .where(lt(mcpServerOAuthStates.expiresAt, now)),
 
-    db
-      .delete(mcpServerAuthorizationCodes)
-      .where(
-        or(
-          lt(mcpServerAuthorizationCodes.expiresAt, now),
-          and(
-            isNotNull(mcpServerAuthorizationCodes.used),
-            lt(mcpServerAuthorizationCodes.used, staleUsedCodesCutoff),
+      db
+        .delete(mcpServerAuthorizationCodes)
+        .where(
+          or(
+            lt(mcpServerAuthorizationCodes.expiresAt, now),
+            and(
+              isNotNull(mcpServerAuthorizationCodes.used),
+              lt(mcpServerAuthorizationCodes.used, staleUsedCodesCutoff),
+            ),
           ),
         ),
-      ),
 
-    db
-      .delete(mcpServerAccessTokens)
-      .where(lt(mcpServerAccessTokens.expiresAt, now)),
-  ]);
+      db
+        .delete(mcpServerAccessTokens)
+        .where(lt(mcpServerAccessTokens.expiresAt, now)),
+
+      db
+        .delete(mcpServerRefreshTokens)
+        .where(lt(mcpServerRefreshTokens.expiresAt, now)),
+    ]);
 
   return {
     oauthStates: statesResult.rowCount ?? 0,
     authorizationCodes: codesResult.rowCount ?? 0,
     accessTokens: tokensResult.rowCount ?? 0,
+    refreshTokens: refreshTokensResult.rowCount ?? 0,
   };
 }

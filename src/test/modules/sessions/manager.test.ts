@@ -137,6 +137,7 @@ describe("SessionManager", () => {
         oauthStates: 1,
         authorizationCodes: 2,
         accessTokens: 3,
+        refreshTokens: 0,
       });
 
       await sessionManager.cleanupExpiredData();
@@ -155,6 +156,7 @@ describe("SessionManager", () => {
         oauthStates: 0,
         authorizationCodes: 0,
         accessTokens: 0,
+        refreshTokens: 0,
       });
 
       await sessionManager.cleanupExpiredData();

@@ -30,10 +30,20 @@ export const completeFathomAuthAndRedirectClientReqSchema = z.object({
   state: z.string(),
 });
 
-export const exchangeCodeForMcpAccessTokenReqSchema = z.object({
-  grant_type: z.literal("authorization_code"),
-  code: z.string(),
-  client_id: z.string().optional(),
-  redirect_uri: z.string().optional(),
-  code_verifier: z.string().optional(),
-});
+export const exchangeCodeForMcpAccessTokenReqSchema = z.discriminatedUnion(
+  "grant_type",
+  [
+    z.object({
+      grant_type: z.literal("authorization_code"),
+      code: z.string(),
+      client_id: z.string().optional(),
+      redirect_uri: z.string().optional(),
+      code_verifier: z.string().optional(),
+    }),
+    z.object({
+      grant_type: z.literal("refresh_token"),
+      refresh_token: z.string(),
+      client_id: z.string(),
+    }),
+  ],
+);
