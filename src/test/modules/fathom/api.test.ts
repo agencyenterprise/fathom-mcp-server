@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FathomAPIClient } from "../../../modules/fathom/api";
 
-vi.mock("../../../modules/oauth/controller", () => ({
+vi.mock("../../../modules/oauth/service", () => ({
   fetchFathomOAuthToken: vi.fn(),
 }));
 
@@ -9,7 +9,7 @@ vi.mock("../../../db", () => ({
   db: {},
 }));
 
-import { fetchFathomOAuthToken } from "../../../modules/oauth/controller";
+import { fetchFathomOAuthToken } from "../../../modules/oauth/service";
 
 function createMockFetchResponse(data: unknown, ok = true) {
   return {

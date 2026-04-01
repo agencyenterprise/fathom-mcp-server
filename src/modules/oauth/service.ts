@@ -15,16 +15,20 @@ import {
   type McpServerOAuthState,
   type McpServerRefreshToken,
 } from "../../db";
+import { config } from "../../shared/config";
 import {
   MCP_SERVER_ACCESS_TOKEN_TTL_MS,
   MCP_SERVER_AUTH_CODE_TTL_MS,
   MCP_SERVER_DEFAULT_SCOPE,
   MCP_SERVER_OAUTH_STATE_TTL_MS,
   MCP_SERVER_REFRESH_TOKEN_TTL_MS,
+  OAUTH_GRANT_TYPE_REFRESH,
   STALE_SESSION_CUTOFF_MS,
 } from "../../shared/constants";
-import { encrypt } from "../../utils/crypto";
+import { AppError } from "../../shared/errors";
+import { decrypt, encrypt } from "../../utils/crypto";
 import type { FathomTokenResType } from "./schema";
+import { fathomTokenResSchema } from "./schema";
 
 export async function insertMcpServerOAuthClient(
   redirectUris: string[],
@@ -326,4 +330,50 @@ export async function cleanupExpiredMcpServerOAuthData(): Promise<{
     accessTokens: tokensResult.rowCount ?? 0,
     refreshTokens: refreshTokensResult.rowCount ?? 0,
   };
+}
+
+export async function fetchFathomOAuthToken(
+  userId: string,
+): Promise<string | null> {
+  const stored = await getFathomOAuthToken(userId);
+
+  if (!stored) {
+    return null;
+  }
+
+  const decryptedAccessToken = decrypt(stored.accessToken);
+
+  if (stored.expiresAt > new Date()) {
+    return decryptedAccessToken;
+  }
+
+  const decryptedRefreshToken = decrypt(stored.refreshToken);
+  const refreshed = await refreshFathomToken(decryptedRefreshToken);
+  await insertFathomToken(userId, refreshed);
+  return refreshed.access_token;
+}
+
+export async function refreshFathomToken(
+  refreshToken: string,
+): Promise<FathomTokenResType> {
+  const oauthUrl = `${config.fathom.oauthBaseUrl}/external/v1/oauth2/token`;
+  const response = await fetch(oauthUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: OAUTH_GRANT_TYPE_REFRESH,
+      refresh_token: refreshToken,
+      client_id: config.fathom.clientId,
+      client_secret: config.fathom.clientSecret,
+    }),
+  });
+
+  if (!response.ok) {
+    throw AppError.fathomApi(
+      "Fathom session expired or was revoked. Please reconnect via Claude Settings > Connectors.",
+    );
+  }
+
+  const data = await response.json();
+  return fathomTokenResSchema.parse(data);
 }
