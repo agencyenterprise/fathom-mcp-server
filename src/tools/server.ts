@@ -62,7 +62,7 @@ export function createToolServer(
     {
       capabilities: {
         logging: {},
-        tools: { listChanged: false },
+        tools: { listChanged: true },
         prompts: { listChanged: false },
       },
     },
