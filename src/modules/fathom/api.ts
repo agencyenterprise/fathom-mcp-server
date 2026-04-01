@@ -3,7 +3,7 @@ import { config } from "../../shared/config";
 import { BEARER_PREFIX, FATHOM_API_TIMEOUT_MS } from "../../shared/constants";
 import { AppError } from "../../shared/errors";
 import type { ListMeetingsReqType } from "../../shared/schemas";
-import { fetchFathomOAuthToken } from "../oauth/controller";
+import { fetchFathomOAuthToken } from "../oauth/service";
 import {
   listMeetingsResSchema,
   listTeamMembersResSchema,

@@ -17,6 +17,11 @@ vi.mock("../../../db", () => ({
   mcpServerRefreshTokens: {},
 }));
 
+vi.mock("../../../utils/crypto", () => ({
+  decrypt: vi.fn((val: string) => `decrypted-${val}`),
+  encrypt: vi.fn((val: string) => `encrypted-${val}`),
+}));
+
 import { db } from "../../../db";
 import {
   cleanupExpiredMcpServerOAuthData,
@@ -27,12 +32,14 @@ import {
   createMcpServerOAuthState,
   createMcpServerRefreshToken,
   deleteMcpServerOAuthState,
+  fetchFathomOAuthToken,
   findMcpServerOAuthClient,
   getFathomOAuthToken,
   getMcpServerAccessToken,
   getMcpServerOAuthState,
   insertFathomToken,
   insertMcpServerOAuthClient,
+  refreshFathomToken,
   verifyMcpServerPKCE,
 } from "../../../modules/oauth/service";
 
@@ -467,6 +474,115 @@ describe("oauth/service", () => {
       expect(result.authorizationCodes).toBe(0);
       expect(result.accessTokens).toBe(0);
       expect(result.refreshTokens).toBe(0);
+    });
+  });
+
+  describe("fetchFathomOAuthToken", () => {
+    it("returns null when no stored token exists for user", async () => {
+      vi.mocked(db.select).mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      } as never);
+
+      const result = await fetchFathomOAuthToken("user-123");
+
+      expect(result).toBeNull();
+    });
+
+    it("returns decrypted access token when token is not yet expired", async () => {
+      const mockToken = {
+        userId: "user-123",
+        accessToken: "encrypted-access-token",
+        refreshToken: "encrypted-refresh-token",
+        expiresAt: new Date(Date.now() + 3600000),
+      };
+      vi.mocked(db.select).mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([mockToken]),
+          }),
+        }),
+      } as never);
+
+      const result = await fetchFathomOAuthToken("user-123");
+
+      expect(result).toBe("decrypted-encrypted-access-token");
+    });
+
+    it("refreshes and stores a new Fathom token when the access token is expired", async () => {
+      const expiredToken = {
+        userId: "user-123",
+        accessToken: "encrypted-access-token",
+        refreshToken: "encrypted-refresh-token",
+        expiresAt: new Date(Date.now() - 1000),
+      };
+      vi.mocked(db.select).mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([expiredToken]),
+          }),
+        }),
+      } as never);
+      vi.mocked(db.insert).mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+        }),
+      } as never);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              access_token: "new-access-token",
+              refresh_token: "new-refresh-token",
+              expires_in: 3600,
+              token_type: "Bearer",
+            }),
+        }),
+      );
+
+      const result = await fetchFathomOAuthToken("user-123");
+
+      expect(result).toBe("new-access-token");
+      expect(db.insert).toHaveBeenCalled();
+    });
+  });
+
+  describe("refreshFathomToken", () => {
+    it("exchanges a refresh token for a new Fathom token", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              access_token: "new-access-token",
+              refresh_token: "new-refresh-token",
+              expires_in: 3600,
+              token_type: "Bearer",
+            }),
+        }),
+      );
+
+      const result = await refreshFathomToken("old-refresh-token");
+
+      expect(result.access_token).toBe("new-access-token");
+    });
+
+    it("throws AppError when Fathom token refresh fails", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: false,
+          status: 401,
+        }),
+      );
+
+      await expect(refreshFathomToken("invalid-token")).rejects.toThrow();
     });
   });
 });
