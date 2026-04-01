@@ -1,5 +1,6 @@
 // MCP Server OAuth (we are the provider)
 export const MCP_SERVER_ACCESS_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+export const MCP_SERVER_REFRESH_TOKEN_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 export const MCP_SERVER_OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 export const MCP_SERVER_AUTH_CODE_TTL_MS = 5 * 60 * 1000;
 export const MCP_SERVER_DEFAULT_SCOPE = "fathom:read";

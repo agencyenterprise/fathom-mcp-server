@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import { config } from "../../shared/config";
 import {
   FATHOM_API_SCOPE,
+  MCP_SERVER_ACCESS_TOKEN_TTL_MS,
   OAUTH_GRANT_TYPE_AUTH_CODE,
   OAUTH_GRANT_TYPE_REFRESH,
   OAUTH_RESPONSE_TYPE_CODE,
@@ -19,9 +20,11 @@ import {
 } from "./schema";
 import {
   consumeMcpServerAuthorizationCode,
+  consumeMcpServerRefreshToken,
   createMcpServerAccessToken,
   createMcpServerAuthorizationCode,
   createMcpServerOAuthState,
+  createMcpServerRefreshToken,
   deleteMcpServerOAuthState,
   findMcpServerOAuthClient,
   getFathomOAuthToken,
@@ -141,10 +144,20 @@ export async function exchangeCodeForMcpAccessToken(
   req: Request,
   res: Response,
 ) {
-  const { code, code_verifier } = exchangeCodeForMcpAccessTokenReqSchema.parse(
-    req.body,
-  );
+  const parsed = exchangeCodeForMcpAccessTokenReqSchema.parse(req.body);
 
+  if (parsed.grant_type === "refresh_token") {
+    return handleRefreshTokenGrant(parsed.refresh_token, res);
+  }
+
+  return handleAuthorizationCodeGrant(parsed.code, parsed.code_verifier, res);
+}
+
+async function handleAuthorizationCodeGrant(
+  code: string,
+  codeVerifier: string | undefined,
+  res: Response,
+) {
   const authorizationCodeRecord = await consumeMcpServerAuthorizationCode(code);
   if (!authorizationCodeRecord) {
     throw AppError.oauth(
@@ -156,12 +169,12 @@ export async function exchangeCodeForMcpAccessToken(
     authorizationCodeRecord;
 
   if (clientCodeChallenge && clientCodeChallengeMethod) {
-    if (!code_verifier) {
+    if (!codeVerifier) {
       throw AppError.validation("Missing code_verifier for MCP Server PKCE");
     }
 
     const isValid = verifyMcpServerPKCE(
-      code_verifier,
+      codeVerifier,
       clientCodeChallenge,
       clientCodeChallengeMethod,
     );
@@ -174,11 +187,31 @@ export async function exchangeCodeForMcpAccessToken(
     }
   }
 
-  const mcpServerAccessToken = await createMcpServerAccessToken(userId, scope);
+  await issueTokenPair(userId, scope, res);
+}
+
+async function handleRefreshTokenGrant(refreshToken: string, res: Response) {
+  const record = await consumeMcpServerRefreshToken(refreshToken);
+  if (!record) {
+    throw AppError.oauth(
+      "invalid_grant",
+      "Invalid, expired, or revoked refresh token",
+    );
+  }
+
+  await issueTokenPair(record.userId, record.scope, res);
+}
+
+async function issueTokenPair(userId: string, scope: string, res: Response) {
+  const accessToken = await createMcpServerAccessToken(userId, scope);
+  const refreshToken = await createMcpServerRefreshToken(userId, scope);
+  const expiresInSeconds = Math.floor(MCP_SERVER_ACCESS_TOKEN_TTL_MS / 1000);
 
   res.json({
-    access_token: mcpServerAccessToken,
+    access_token: accessToken,
     token_type: "Bearer",
+    expires_in: expiresInSeconds,
+    refresh_token: refreshToken,
     scope,
   });
 }

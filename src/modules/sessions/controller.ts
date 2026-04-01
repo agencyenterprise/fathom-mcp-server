@@ -15,30 +15,16 @@ export async function routeToSessionOrInitialize(req: Request, res: Response) {
     userId: req.userId,
   });
 
-  if (sessionId) {
-    const session = await sessionManager.retrieveSession(sessionId);
-
-    if (!session && isInitializeRequest(req.body)) {
-      const transport = await sessionManager.createSession(userId!);
-      await transport.handleRequest(req, res, req.body);
-      return;
-    }
-
-    if (!session) {
-      throw AppError.notFound("Session");
-    }
-
-    if (session.userId !== userId) {
-      throw AppError.forbidden("Session does not belong to this user");
-    }
-
-    await session.transport.handleRequest(req, res, req.body);
-    return;
-  }
-
   if (isInitializeRequest(req.body)) {
     if (!userId) {
       throw AppError.auth("unauthorized", "Unauthorized");
+    }
+
+    if (sessionId) {
+      const existingSession = await sessionManager.retrieveSession(sessionId);
+      if (existingSession) {
+        await sessionManager.terminateSession(sessionId);
+      }
     }
 
     const transport = await sessionManager.createSession(userId);
@@ -46,10 +32,23 @@ export async function routeToSessionOrInitialize(req: Request, res: Response) {
     return;
   }
 
-  throw AppError.session(
-    "bad_request",
-    "Missing session ID for non-initialize request",
-  );
+  if (!sessionId) {
+    throw AppError.session(
+      "bad_request",
+      "Missing session ID for non-initialize request",
+    );
+  }
+
+  const session = await sessionManager.retrieveSession(sessionId);
+  if (!session) {
+    throw AppError.notFound("Session");
+  }
+
+  if (session.userId !== userId) {
+    throw AppError.forbidden("Session does not belong to this user");
+  }
+
+  await session.transport.handleRequest(req, res, req.body);
 }
 
 export async function retrieveAuthenticatedSession(

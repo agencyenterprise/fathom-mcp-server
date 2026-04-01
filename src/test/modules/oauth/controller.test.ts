@@ -29,9 +29,11 @@ import {
 } from "../../../modules/oauth/controller";
 import {
   consumeMcpServerAuthorizationCode,
+  consumeMcpServerRefreshToken,
   createMcpServerAccessToken,
   createMcpServerAuthorizationCode,
   createMcpServerOAuthState,
+  createMcpServerRefreshToken,
   deleteMcpServerOAuthState,
   findMcpServerOAuthClient,
   getFathomOAuthToken,
@@ -303,11 +305,12 @@ describe("oauth/controller", () => {
   });
 
   describe("exchangeCodeForMcpAccessToken", () => {
-    it("exchanges code for access token", async () => {
+    it("exchanges code for access token with refresh token", async () => {
       vi.mocked(consumeMcpServerAuthorizationCode).mockResolvedValue(
         createMockAuthorizationCode(),
       );
       vi.mocked(createMcpServerAccessToken).mockResolvedValue("access-token");
+      vi.mocked(createMcpServerRefreshToken).mockResolvedValue("refresh-token");
 
       const req = createMockRequest({
         body: {
@@ -322,6 +325,8 @@ describe("oauth/controller", () => {
       expect(res.json).toHaveBeenCalledWith({
         access_token: "access-token",
         token_type: "Bearer",
+        expires_in: expect.any(Number),
+        refresh_token: "refresh-token",
         scope: "fathom:read",
       });
     });
@@ -349,6 +354,7 @@ describe("oauth/controller", () => {
       );
       vi.mocked(verifyMcpServerPKCE).mockReturnValue(true);
       vi.mocked(createMcpServerAccessToken).mockResolvedValue("access-token");
+      vi.mocked(createMcpServerRefreshToken).mockResolvedValue("refresh-token");
 
       const req = createMockRequest({
         body: {
@@ -402,6 +408,59 @@ describe("oauth/controller", () => {
         body: {
           grant_type: "authorization_code",
           code: "auth-code",
+        },
+      });
+      const res = createMockResponse();
+
+      await expect(exchangeCodeForMcpAccessToken(req, res)).rejects.toThrow();
+    });
+
+    it("issues new token pair via refresh_token grant", async () => {
+      vi.mocked(consumeMcpServerRefreshToken).mockResolvedValue({
+        id: "mock-id",
+        token: "old-refresh-token",
+        userId: "user-id",
+        scope: "fathom:read",
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 86400000),
+        revokedAt: null,
+      });
+      vi.mocked(createMcpServerAccessToken).mockResolvedValue(
+        "new-access-token",
+      );
+      vi.mocked(createMcpServerRefreshToken).mockResolvedValue(
+        "new-refresh-token",
+      );
+
+      const req = createMockRequest({
+        body: {
+          grant_type: "refresh_token",
+          refresh_token: "old-refresh-token",
+        },
+      });
+      const res = createMockResponse();
+
+      await exchangeCodeForMcpAccessToken(req, res);
+
+      expect(consumeMcpServerRefreshToken).toHaveBeenCalledWith(
+        "old-refresh-token",
+      );
+      expect(res.json).toHaveBeenCalledWith({
+        access_token: "new-access-token",
+        token_type: "Bearer",
+        expires_in: expect.any(Number),
+        refresh_token: "new-refresh-token",
+        scope: "fathom:read",
+      });
+    });
+
+    it("throws on invalid refresh token", async () => {
+      vi.mocked(consumeMcpServerRefreshToken).mockResolvedValue(null);
+
+      const req = createMockRequest({
+        body: {
+          grant_type: "refresh_token",
+          refresh_token: "invalid-token",
         },
       });
       const res = createMockResponse();

@@ -84,6 +84,22 @@ export const mcpServerOAuthClients = pgTable("mcp_server_oauth_clients", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const mcpServerRefreshTokens = pgTable(
+  "mcp_server_refresh_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    token: text("token").notNull().unique(),
+    userId: text("user_id").notNull(),
+    scope: text("scope").notNull().default("fathom:read"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    revokedAt: timestamp("revoked_at"),
+  },
+  (table) => [
+    index("mcp_server_refresh_tokens_expires_at_idx").on(table.expiresAt),
+  ],
+);
+
 export const mcpSessions = pgTable(
   "mcp_sessions",
   {
@@ -109,5 +125,8 @@ export type McpServerAuthorizationCode = InferSelectModel<
 >;
 export type McpServerOAuthClient = InferSelectModel<
   typeof mcpServerOAuthClients
+>;
+export type McpServerRefreshToken = InferSelectModel<
+  typeof mcpServerRefreshTokens
 >;
 export type McpSession = InferSelectModel<typeof mcpSessions>;

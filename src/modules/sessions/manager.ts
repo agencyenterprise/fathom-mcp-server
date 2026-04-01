@@ -336,7 +336,8 @@ export class SessionManager {
       const totalOAuthCleaned =
         oauthCleanupResult.oauthStates +
         oauthCleanupResult.authorizationCodes +
-        oauthCleanupResult.accessTokens;
+        oauthCleanupResult.accessTokens +
+        oauthCleanupResult.refreshTokens;
 
       if (totalOAuthCleaned > 0) {
         logger.info(oauthCleanupResult, "Cleaned up expired OAuth data");
