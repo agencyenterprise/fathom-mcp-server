@@ -177,7 +177,8 @@ export class SessionManager {
       lastAccessedAt: new Date(),
     });
 
-    const activeCount = this.activeTransports.size;
+    const activeCount =
+      this.activeTransports.size + this.activeSseTransports.size;
 
     if (activeCount > MAX_ACTIVE_TRANSPORTS_WARN) {
       logger.warn(

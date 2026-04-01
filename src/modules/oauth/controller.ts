@@ -5,11 +5,9 @@ import {
   FATHOM_API_SCOPE,
   MCP_SERVER_ACCESS_TOKEN_TTL_MS,
   OAUTH_GRANT_TYPE_AUTH_CODE,
-  OAUTH_GRANT_TYPE_REFRESH,
   OAUTH_RESPONSE_TYPE_CODE,
 } from "../../shared/constants";
 import { AppError } from "../../shared/errors";
-import { decrypt } from "../../utils/crypto";
 import type { FathomTokenResType } from "./schema";
 import {
   authorizeClientAndRedirectToFathomReqSchema,
@@ -27,7 +25,6 @@ import {
   createMcpServerRefreshToken,
   deleteMcpServerOAuthState,
   findMcpServerOAuthClient,
-  getFathomOAuthToken,
   getMcpServerOAuthState,
   insertFathomToken,
   insertMcpServerOAuthClient,
@@ -173,8 +170,13 @@ async function issueAccessTokenFromAuthCode(
     );
   }
 
-  const { clientCodeChallenge, clientCodeChallengeMethod, clientId, userId, scope } =
-    authorizationCodeRecord;
+  const {
+    clientCodeChallenge,
+    clientCodeChallengeMethod,
+    clientId,
+    userId,
+    scope,
+  } = authorizationCodeRecord;
 
   if (clientCodeChallenge && clientCodeChallengeMethod) {
     if (!body.code_verifier) {
@@ -216,10 +218,7 @@ async function refreshMcpAccessToken(
 ) {
   const refreshTokenRecord = await consumeMcpServerRefreshToken(token);
   if (!refreshTokenRecord) {
-    throw AppError.oauth(
-      "invalid_grant",
-      "Invalid or expired refresh token",
-    );
+    throw AppError.oauth("invalid_grant", "Invalid or expired refresh token");
   }
 
   if (refreshTokenRecord.clientId !== clientId) {
@@ -245,27 +244,6 @@ async function refreshMcpAccessToken(
   });
 }
 
-export async function fetchFathomOAuthToken(
-  userId: string,
-): Promise<string | null> {
-  const stored = await getFathomOAuthToken(userId);
-
-  if (!stored) {
-    return null;
-  }
-
-  const decryptedAccessToken = decrypt(stored.accessToken);
-
-  if (stored.expiresAt > new Date()) {
-    return decryptedAccessToken;
-  }
-
-  const decryptedRefreshToken = decrypt(stored.refreshToken);
-  const refreshed = await refreshFathomToken(decryptedRefreshToken);
-  await insertFathomToken(userId, refreshed);
-  return refreshed.access_token;
-}
-
 export async function exchangeCodeForFathomToken(
   code: string,
 ): Promise<FathomTokenResType> {
@@ -284,31 +262,6 @@ export async function exchangeCodeForFathomToken(
 
   if (!response.ok) {
     throw AppError.fathomApi("Failed to exchange authorization code");
-  }
-
-  const data = await response.json();
-  return fathomTokenResSchema.parse(data);
-}
-
-export async function refreshFathomToken(
-  refreshToken: string,
-): Promise<FathomTokenResType> {
-  const oauthUrl = `${config.fathom.oauthBaseUrl}/external/v1/oauth2/token`;
-  const response = await fetch(oauthUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: OAUTH_GRANT_TYPE_REFRESH,
-      refresh_token: refreshToken,
-      client_id: config.fathom.clientId,
-      client_secret: config.fathom.clientSecret,
-    }),
-  });
-
-  if (!response.ok) {
-    throw AppError.fathomApi(
-      "Fathom session expired or was revoked. Please reconnect via Claude Settings > Connectors.",
-    );
   }
 
   const data = await response.json();
