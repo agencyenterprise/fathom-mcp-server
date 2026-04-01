@@ -14,15 +14,18 @@ vi.mock("../../../db", () => ({
   mcpServerAuthorizationCodes: {},
   mcpServerOAuthClients: {},
   mcpServerOAuthStates: {},
+  mcpServerRefreshTokens: {},
 }));
 
 import { db } from "../../../db";
 import {
   cleanupExpiredMcpServerOAuthData,
   consumeMcpServerAuthorizationCode,
+  consumeMcpServerRefreshToken,
   createMcpServerAccessToken,
   createMcpServerAuthorizationCode,
   createMcpServerOAuthState,
+  createMcpServerRefreshToken,
   deleteMcpServerOAuthState,
   findMcpServerOAuthClient,
   getFathomOAuthToken,
@@ -364,6 +367,76 @@ describe("oauth/service", () => {
     });
   });
 
+  describe("createMcpServerRefreshToken", () => {
+    it("creates refresh token and returns token string", async () => {
+      vi.mocked(db.insert).mockReturnValue({
+        values: vi.fn().mockResolvedValue(undefined),
+      } as never);
+
+      const result = await createMcpServerRefreshToken(
+        "user-id",
+        "fathom:read",
+      );
+
+      expect(typeof result).toBe("string");
+      expect(result.length).toBeGreaterThan(0);
+      expect(db.insert).toHaveBeenCalled();
+    });
+  });
+
+  describe("consumeMcpServerRefreshToken", () => {
+    it("returns and revokes token when valid", async () => {
+      const mockToken = {
+        token: "refresh-token",
+        userId: "user-id",
+        scope: "fathom:read",
+        revokedAt: null,
+      };
+      vi.mocked(db.transaction).mockImplementation(async (callback) => {
+        const tx = {
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([mockToken]),
+              }),
+            }),
+          }),
+          update: vi.fn().mockReturnValue({
+            set: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue(undefined),
+            }),
+          }),
+        };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return callback(tx as any);
+      });
+
+      const result = await consumeMcpServerRefreshToken("refresh-token");
+
+      expect(result).toEqual(mockToken);
+    });
+
+    it("returns null when token not found, expired, or revoked", async () => {
+      vi.mocked(db.transaction).mockImplementation(async (callback) => {
+        const tx = {
+          select: vi.fn().mockReturnValue({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue([]),
+              }),
+            }),
+          }),
+        };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return callback(tx as any);
+      });
+
+      const result = await consumeMcpServerRefreshToken("invalid-token");
+
+      expect(result).toBeNull();
+    });
+  });
+
   describe("cleanupExpiredMcpServerOAuthData", () => {
     it("deletes expired data and returns counts", async () => {
       vi.mocked(db.delete).mockReturnValue({
@@ -375,6 +448,7 @@ describe("oauth/service", () => {
       expect(result.oauthStates).toBe(5);
       expect(result.authorizationCodes).toBe(5);
       expect(result.accessTokens).toBe(5);
+      expect(result.refreshTokens).toBe(5);
     });
 
     it("handles null rowCount", async () => {
@@ -387,6 +461,7 @@ describe("oauth/service", () => {
       expect(result.oauthStates).toBe(0);
       expect(result.authorizationCodes).toBe(0);
       expect(result.accessTokens).toBe(0);
+      expect(result.refreshTokens).toBe(0);
     });
   });
 });
