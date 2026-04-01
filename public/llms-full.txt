@@ -13,9 +13,10 @@ Think of MCP as "USB-C for AI applications" — this server plugs Fathom's capab
 ## Server Information
 
 - Type: Remote MCP Server
-- Transport: Streamable HTTP
+- Transports: Streamable HTTP, SSE (legacy)
 - Authentication: OAuth 2.0
-- URL: https://www.fathom-mcp-server.com/mcp
+- Streamable HTTP URL: https://www.fathom-mcp-server.com/mcp
+- SSE URL: https://www.fathom-mcp-server.com/sse
 - API Docs: https://www.fathom-mcp-server.com/docs
 - Source: https://github.com/agencyenterprise/fathom-mcp-server
 - License: MIT
@@ -30,6 +31,7 @@ Think of MCP as "USB-C for AI applications" — this server plugs Fathom's capab
 
 - Claude Desktop
 - Claude.ai (via Connectors)
+- Perplexity Desktop (via SSE connector)
 - Any MCP-compatible AI assistant or agent
 
 ---
@@ -371,6 +373,12 @@ Full policy: https://www.fathom-mcp-server.com/privacy
 2. Go to Settings > Connectors > Add Custom Connector
 3. Paste: https://www.fathom-mcp-server.com/mcp
 4. Click connect and authenticate with Fathom
+
+For SSE clients (e.g. Perplexity Desktop):
+
+1. Use the SSE URL: https://www.fathom-mcp-server.com/sse
+2. Refer to your client's documentation for how to add a remote SSE connector
+3. Authenticate with your Fathom account via OAuth
 
 ### For Organizations
 
