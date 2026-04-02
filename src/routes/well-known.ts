@@ -3,6 +3,7 @@ import { config } from "../shared/config";
 import {
   MCP_SERVER_DEFAULT_SCOPE,
   OAUTH_GRANT_TYPE_AUTH_CODE,
+  OAUTH_GRANT_TYPE_REFRESH,
   OAUTH_RESPONSE_TYPE_CODE,
 } from "../shared/constants";
 
@@ -24,7 +25,10 @@ router.get("/oauth-authorization-server", (_req, res) => {
     token_endpoint: `${config.baseUrl}/oauth/token`,
     registration_endpoint: `${config.baseUrl}/oauth/register`,
     response_types_supported: [OAUTH_RESPONSE_TYPE_CODE],
-    grant_types_supported: [OAUTH_GRANT_TYPE_AUTH_CODE],
+    grant_types_supported: [
+      OAUTH_GRANT_TYPE_AUTH_CODE,
+      OAUTH_GRANT_TYPE_REFRESH,
+    ],
     token_endpoint_auth_methods_supported: ["none"],
     code_challenge_methods_supported: ["S256", "plain"],
     scopes_supported: [MCP_SERVER_DEFAULT_SCOPE],

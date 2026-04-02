@@ -3,7 +3,7 @@
   "name": "io.github.agencyenterprise/fathom-mcp-server",
   "title": "Fathom MCP Server",
   "description": "Connect Claude to Fathom meeting recordings, transcripts, and summaries",
-  "version": "1.0.0",
+  "version": "1.2.4",
   "repository": {
     "url": "https://github.com/agencyenterprise/fathom-mcp-server",
     "source": "github"

@@ -451,6 +451,9 @@ describe("oauth/service", () => {
 
   describe("cleanupExpiredMcpServerOAuthData", () => {
     it("deletes expired data and returns counts", async () => {
+      vi.mocked(db.select).mockReturnValue({
+        from: vi.fn().mockReturnValue({}),
+      } as never);
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn().mockResolvedValue({ rowCount: 5 }),
       } as never);
@@ -461,9 +464,13 @@ describe("oauth/service", () => {
       expect(result.authorizationCodes).toBe(5);
       expect(result.accessTokens).toBe(5);
       expect(result.refreshTokens).toBe(5);
+      expect(result.fathomTokens).toBe(5);
     });
 
     it("handles null rowCount", async () => {
+      vi.mocked(db.select).mockReturnValue({
+        from: vi.fn().mockReturnValue({}),
+      } as never);
       vi.mocked(db.delete).mockReturnValue({
         where: vi.fn().mockResolvedValue({ rowCount: null }),
       } as never);
@@ -474,6 +481,7 @@ describe("oauth/service", () => {
       expect(result.authorizationCodes).toBe(0);
       expect(result.accessTokens).toBe(0);
       expect(result.refreshTokens).toBe(0);
+      expect(result.fathomTokens).toBe(0);
     });
   });
 

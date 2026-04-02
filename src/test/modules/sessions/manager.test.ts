@@ -210,6 +210,7 @@ describe("SessionManager", () => {
         authorizationCodes: 2,
         accessTokens: 3,
         refreshTokens: 0,
+        fathomTokens: 0,
       });
 
       await sessionManager.cleanupExpiredData();
@@ -229,6 +230,7 @@ describe("SessionManager", () => {
         authorizationCodes: 0,
         accessTokens: 0,
         refreshTokens: 0,
+        fathomTokens: 0,
       });
 
       await sessionManager.cleanupExpiredData();
@@ -260,6 +262,7 @@ describe("SessionManager", () => {
         authorizationCodes: 0,
         accessTokens: 0,
         refreshTokens: 0,
+        fathomTokens: 0,
       });
 
       await sessionManager.cleanupExpiredData();
@@ -285,6 +288,7 @@ describe("SessionManager", () => {
         authorizationCodes: 0,
         accessTokens: 0,
         refreshTokens: 0,
+        fathomTokens: 0,
       });
 
       await expect(sessionManager.cleanupExpiredData()).resolves.not.toThrow();
@@ -406,6 +410,7 @@ describe("SessionManager", () => {
         authorizationCodes: 0,
         accessTokens: 0,
         refreshTokens: 0,
+        fathomTokens: 0,
       });
 
       sessionManager.startCleanupScheduler();

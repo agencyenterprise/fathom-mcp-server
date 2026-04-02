@@ -82,6 +82,7 @@ const meetingSchema = z.object({
   recording_start_time: z.string(),
   recording_end_time: z.string(),
   calendar_invitees_domains_type: z.enum([
+    "all",
     "only_internal",
     "one_or_more_external",
   ]),

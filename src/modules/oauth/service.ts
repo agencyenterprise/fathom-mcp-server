@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "crypto";
-import { and, eq, gt, isNotNull, isNull, lt, or } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull, lt, notInArray, or } from "drizzle-orm";
 import {
   db,
   fathomOAuthTokens,
@@ -291,44 +291,68 @@ export async function cleanupExpiredMcpServerOAuthData(): Promise<{
   authorizationCodes: number;
   accessTokens: number;
   refreshTokens: number;
+  fathomTokens: number;
 }> {
   const now = new Date();
   const staleUsedCodesCutoff = new Date(
     now.getTime() - STALE_SESSION_CUTOFF_MS,
   );
 
-  const [statesResult, codesResult, tokensResult, refreshTokensResult] =
-    await Promise.all([
-      db
-        .delete(mcpServerOAuthStates)
-        .where(lt(mcpServerOAuthStates.expiresAt, now)),
+  const [
+    statesResult,
+    codesResult,
+    tokensResult,
+    refreshTokensResult,
+    fathomTokensResult,
+  ] = await Promise.all([
+    db
+      .delete(mcpServerOAuthStates)
+      .where(lt(mcpServerOAuthStates.expiresAt, now)),
 
-      db
-        .delete(mcpServerAuthorizationCodes)
-        .where(
-          or(
-            lt(mcpServerAuthorizationCodes.expiresAt, now),
-            and(
-              isNotNull(mcpServerAuthorizationCodes.used),
-              lt(mcpServerAuthorizationCodes.used, staleUsedCodesCutoff),
-            ),
+    db
+      .delete(mcpServerAuthorizationCodes)
+      .where(
+        or(
+          lt(mcpServerAuthorizationCodes.expiresAt, now),
+          and(
+            isNotNull(mcpServerAuthorizationCodes.used),
+            lt(mcpServerAuthorizationCodes.used, staleUsedCodesCutoff),
           ),
         ),
+      ),
 
-      db
-        .delete(mcpServerAccessTokens)
-        .where(lt(mcpServerAccessTokens.expiresAt, now)),
+    db
+      .delete(mcpServerAccessTokens)
+      .where(lt(mcpServerAccessTokens.expiresAt, now)),
 
-      db
-        .delete(mcpServerRefreshTokens)
-        .where(lt(mcpServerRefreshTokens.expiresAt, now)),
-    ]);
+    db
+      .delete(mcpServerRefreshTokens)
+      .where(lt(mcpServerRefreshTokens.expiresAt, now)),
+
+    db.delete(fathomOAuthTokens).where(
+      and(
+        notInArray(
+          fathomOAuthTokens.userId,
+          db
+            .select({ userId: mcpServerRefreshTokens.userId })
+            .from(mcpServerRefreshTokens),
+        ),
+        notInArray(
+          fathomOAuthTokens.userId,
+          db
+            .select({ userId: mcpServerAccessTokens.userId })
+            .from(mcpServerAccessTokens),
+        ),
+      ),
+    ),
+  ]);
 
   return {
     oauthStates: statesResult.rowCount ?? 0,
     authorizationCodes: codesResult.rowCount ?? 0,
     accessTokens: tokensResult.rowCount ?? 0,
     refreshTokens: refreshTokensResult.rowCount ?? 0,
+    fathomTokens: fathomTokensResult.rowCount ?? 0,
   };
 }
 
