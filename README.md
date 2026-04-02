@@ -2,6 +2,8 @@
 
 # Fathom AI MCP Server
 
+[![SafeSkill 50/100](https://img.shields.io/badge/SafeSkill-50%2F100_Use%20with%20Caution-orange)](https://safeskill.dev/scan/agencyenterprise-fathom-mcp-server)
+
 **Connect Claude to your Fathom meetings, transcripts, and AI summaries.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
