@@ -2,6 +2,8 @@
 
 # Fathom AI MCP Server
 
+It was fun while it lasted! Fathom now has an offical mcp: https://developers.fathom.ai/mcp-docs
+
 **Connect Claude to your Fathom meetings, transcripts, and AI summaries.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -194,6 +196,7 @@ For pre-release features, use the staging URLs:
 ```
 https://fathom-mcp-staging.up.railway.app/mcp
 ```
+
 ```
 https://fathom-mcp-staging.up.railway.app/sse
 ```
