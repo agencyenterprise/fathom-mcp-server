@@ -1,8 +1,8 @@
+It was fun while it lasted! Fathom now has an offical mcp: https://developers.fathom.ai/mcp-docs
+
 <div align="center">
 
 # Fathom AI MCP Server
-
-It was fun while it lasted! Fathom now has an offical mcp: https://developers.fathom.ai/mcp-docs
 
 **Connect Claude to your Fathom meetings, transcripts, and AI summaries.**
 
