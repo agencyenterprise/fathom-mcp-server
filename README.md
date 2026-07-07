@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/agencyenterprise-fathom-mcp-server-badge.png)](https://mseep.ai/app/agencyenterprise-fathom-mcp-server)
+
 It was fun while it lasted! Fathom now has an offical mcp: https://developers.fathom.ai/mcp-docs
 
 However, I plan on adding very customizable tools to this mcp so it will be kept alive and expanded on once I have time or if anyone else contributes.
