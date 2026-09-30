@@ -17,6 +17,7 @@ export default defineConfig({
         "src/index.ts",
         "src/routes/index.ts",
         "src/routes/docs.ts",
+        "src/routes/landing.ts",
         "src/routes/mcp.ts",
         "src/routes/oauth.ts",
         "src/routes/sse.ts",
