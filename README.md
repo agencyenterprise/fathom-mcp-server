@@ -1,3 +1,7 @@
+It was fun while it lasted! Fathom now has an offical mcp: https://developers.fathom.ai/mcp-docs
+
+However, I plan on adding very customizable tools to this mcp so it will be kept alive and expanded on once I have time or if anyone else contributes.
+
 <div align="center">
 
 # Fathom AI MCP Server
@@ -194,6 +198,7 @@ For pre-release features, use the staging URLs:
 ```
 https://fathom-mcp-staging.up.railway.app/mcp
 ```
+
 ```
 https://fathom-mcp-staging.up.railway.app/sse
 ```
