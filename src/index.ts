@@ -9,6 +9,7 @@ import { SessionManager } from "./modules/sessions/manager";
 import {
   docsRouter,
   healthRouter,
+  landingRouter,
   mcpRouter,
   oauthRouter,
   sseConnectionRouter,
@@ -39,6 +40,7 @@ if (config.nodeEnv !== "production") {
   });
 }
 
+app.use(landingRouter(publicPath));
 app.use(express.static(publicPath));
 app.use(requestLogger);
 
